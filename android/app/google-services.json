@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "51481657208",
+    "project_id": "pikkar-ceb32",
+    "storage_bucket": "pikkar-ceb32.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51481657208:android:58197774c1d0da7ce7d28d",
+        "android_client_info": {
+          "package_name": "com.example.rapido_clone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlfQqO7fHJsUAvmDHGC6J0U1t6BwlyG9g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
