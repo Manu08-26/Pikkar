@@ -286,106 +286,97 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           // Long press to manually refresh location
           _getCurrentLocation();
         },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              localizations.currentLocation,
-              style: TextStyle(
-                fontSize: 12,
-                color: _appTheme.textGrey,
-                fontWeight: FontWeight.normal,
+        child: IntrinsicHeight(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Always show "Current location" label
+              Text(
+                "Current location",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF8E8E8E),
+                  fontWeight: FontWeight.normal,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Expanded(
-                  child: _isLoadingLocation
-                      ? Row(
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _currentLocationName,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: _appTheme.textColor,
-                                  fontWeight: FontWeight.w600,
+              const SizedBox(height: 2),
+              // Location name row
+              Row(
+                children: [
+                  Expanded(
+                    child: _isLoadingLocation
+                        ? Row(
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
                               ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _currentLocationName.isNotEmpty 
+                                      ? _currentLocationName 
+                                      : "Getting location...",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: const Color(0xFF121212),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            _currentLocationName.isNotEmpty 
+                                ? _currentLocationName 
+                                : "Tap to set location",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: _currentLocationName.isNotEmpty 
+                                  ? const Color(0xFF121212)
+                                  : const Color(0xFF8E8E8E),
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        )
-                      : _currentLocationName.isEmpty 
-                          ? Text(
-                              "Tap to set location",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: _appTheme.textGrey,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            )
-                          : Text(
-                              _currentLocationName,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: _appTheme.textColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  color: _appTheme.textColor,
-                  size: 20,
-                ),
-              ],
-            ),
-          ],
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: const Color(0xFF121212),
+                    size: 18,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      titleSpacing: 0,
+      titleSpacing: 8,
+      centerTitle: false,
 
       /// TOP RIGHT ICONS
       actions: [
         Stack(
+          clipBehavior: Clip.none,
           children: [
-            // IconButton(
-            //   icon: Icon(Icons.notifications_outlined, color: _appTheme.textColor),
-            //   onPressed: () {
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(
-            //         builder: (_) => const NotificationsScreen(),
-            //       ),
-            //     );
-            //   },
-            // ),
+           
             Positioned(
               right: 8,
               top: 8,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: _appTheme.brandRed,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: _appTheme.brandRed,
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
