@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -19,25 +20,56 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final AppTheme _appTheme = AppTheme();
-  String _currentLocationName = "Loading location...";
+  String _currentLocationName = "Getting location...";
   bool _isLoadingLocation = true;
+  bool _hasTriedLocation = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _appTheme.addListener(_onThemeChanged);
     _pageController.addListener(() {
       setState(() {
         currentPage = _pageController.page!;
       });
     });
-    _getCurrentLocation();
+    // Delay location fetch slightly to ensure widget is mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _getCurrentLocation();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Retry location fetch when dependencies change if still loading
+    if ((_currentLocationName == "Loading location..." || 
+         _currentLocationName == "Getting location..." ||
+         _currentLocationName.isEmpty) && 
+        _isLoadingLocation) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted && (_currentLocationName.isEmpty || _isLoadingLocation)) {
+          _getCurrentLocation();
+        }
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh location when app comes to foreground
+    if (state == AppLifecycleState.resumed) {
+      _getCurrentLocation();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _appTheme.removeListener(_onThemeChanged);
     _pageController.dispose();
     super.dispose();
@@ -48,54 +80,97 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    if (!_hasTriedLocation) {
+      _hasTriedLocation = true;
+    }
+    
     try {
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = true;
+          if (_currentLocationName.isEmpty || _currentLocationName == "Tap to set location") {
+            _currentLocationName = "Getting location...";
+          }
+        });
+      }
+
+      print('🔍 Starting location fetch...');
+
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('📍 Location service enabled: $serviceEnabled');
+      
       if (!serviceEnabled) {
-        setState(() {
-          _currentLocationName = "Location services disabled";
-          _isLoadingLocation = false;
-        });
-        return;
-      }
-
-      // Check location permissions
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+        if (mounted) {
           setState(() {
-            _currentLocationName = "Permission denied";
+            _currentLocationName = "Enable location services";
             _isLoadingLocation = false;
           });
-          return;
         }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() {
-          _currentLocationName = "Permission denied forever";
-          _isLoadingLocation = false;
-        });
         return;
       }
 
-      // Get current position
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      // Check location permissions (don't request here - already requested after splash)
+      LocationPermission permission = await Geolocator.checkPermission();
+      print('🔐 Current permission: $permission');
+      
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() {
+            _currentLocationName = "Tap to set location";
+            _isLoadingLocation = false;
+          });
+        }
+        return;
+      }
+
+      // Try to get last known position first (faster)
+      Position? position;
+      try {
+        print('📍 Trying to get last known position...');
+        position = await Geolocator.getLastKnownPosition();
+        if (position != null) {
+          print('✅ Got last known position: ${position.latitude}, ${position.longitude}');
+        }
+      } catch (e) {
+        print('⚠️ Last known position failed: $e');
+      }
+
+      // If no last known position, get current position
+      if (position == null) {
+        print('📍 Getting current position...');
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium, // Changed from high to medium for faster response
+        ).timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            print('⏱️ Location request timed out');
+            throw TimeoutException('Location request timed out');
+          },
+        );
+        print('✅ Got current position: ${position.latitude}, ${position.longitude}');
+      }
 
       // Reverse geocode to get address
+      print('🌐 Reverse geocoding...');
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('⏱️ Geocoding timed out');
+          return <Placemark>[];
+        },
       );
 
-      if (placemarks.isNotEmpty) {
+      print('📍 Placemarks found: ${placemarks.length}');
+
+      if (placemarks.isNotEmpty && mounted) {
         Placemark place = placemarks[0];
         String address = '';
         
-        // Build address string
+        // Build address string - prioritize street, then subLocality, then locality
         if (place.street != null && place.street!.isNotEmpty) {
           address = place.street!;
         } else if (place.subThoroughfare != null && place.subThoroughfare!.isNotEmpty) {
@@ -121,24 +196,46 @@ class _HomeScreenState extends State<HomeScreen> {
         if (place.locality != null && place.locality!.isNotEmpty) {
           if (address.isEmpty) {
             address = place.locality!;
+          } else if (!address.contains(place.locality!)) {
+            address += ', ${place.locality!}';
           }
         }
 
+        print('✅ Address: $address');
+
+        if (mounted) {
+          setState(() {
+            _currentLocationName = address.isNotEmpty ? address : "Current Location";
+            _isLoadingLocation = false;
+          });
+        }
+      } else if (mounted && position != null) {
+        // If geocoding fails, show coordinates as fallback
+        print('⚠️ Geocoding failed, showing coordinates');
         setState(() {
-          _currentLocationName = address.isNotEmpty ? address : "Current Location";
+          _currentLocationName = "${position!.latitude.toStringAsFixed(4)}, ${position!.longitude.toStringAsFixed(4)}";
           _isLoadingLocation = false;
         });
-      } else {
+      } else if (mounted) {
         setState(() {
-          _currentLocationName = "Current Location";
+          _currentLocationName = _currentLocationName.isEmpty ? "Tap to set location" : _currentLocationName;
           _isLoadingLocation = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _currentLocationName = "Unable to get location";
-        _isLoadingLocation = false;
-      });
+    } catch (e, stackTrace) {
+      print('❌ Error getting location: $e');
+      print('Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          // Only set fallback if we don't have a location yet
+          if (_currentLocationName.isEmpty || 
+              _currentLocationName == "Getting location..." ||
+              _currentLocationName == "Loading location...") {
+            _currentLocationName = "Tap to set location";
+          }
+          _isLoadingLocation = false;
+        });
+      }
     }
   }
 
@@ -151,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
     "assets/carousel3.png",
   ];
 
-  @override
+  @override 
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     return Directionality(
@@ -167,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
       automaticallyImplyLeading: false,
       leading: IconButton(
         icon: Icon(
-          _appTheme.rtlEnabled ? Icons.menu : Icons.menu,
+          Icons.menu,
           color: _appTheme.textColor,
         ),
         onPressed: () {
@@ -176,12 +273,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       title: InkWell(
         onTap: () {
+          // Refresh location when tapped
+          _getCurrentLocation();
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => const MapLocationScreen(),
             ),
           );
+        },
+        onLongPress: () {
+          // Long press to manually refresh location
+          _getCurrentLocation();
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,24 +303,52 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: _isLoadingLocation
-                      ? SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
-                          ),
+                      ? Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _currentLocationName,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: _appTheme.textColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
                         )
-                      : Text(
-                          _currentLocationName,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: _appTheme.textColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
+                      : _currentLocationName.isEmpty 
+                          ? Text(
+                              "Tap to set location",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _appTheme.textGrey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            )
+                          : Text(
+                              _currentLocationName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _appTheme.textColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                 ),
                 const SizedBox(width: 4),
                 Icon(

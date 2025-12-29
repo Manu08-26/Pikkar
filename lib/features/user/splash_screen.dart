@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'location_permission_screen.dart';
+import 'login_screen.dart';
 import '../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,13 +19,13 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToLogin() {
-    // Wait for 2-3 seconds then navigate to location permission screen
+    // Wait for 2-3 seconds then navigate to login screen
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const LocationPermissionScreen(),
+            builder: (_) => const LoginScreen(),
           ),
         );
       }

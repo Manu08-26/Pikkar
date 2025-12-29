@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'otp_verification_screen.dart';
 import 'home_screen.dart';
 import '../../core/theme/app_theme.dart';
@@ -24,6 +25,34 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _appTheme.addListener(_onThemeChanged);
+    // Request location permission after splash screen
+    _requestLocationPermission();
+  }
+
+  Future<void> _requestLocationPermission() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      // Request permission if denied
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      // If denied forever, user needs to enable in settings
+      if (permission == LocationPermission.deniedForever) {
+        // Permission denied forever - user needs to enable in settings
+        return;
+      }
+    } catch (e) {
+      print('Error requesting location permission: $e');
+    }
   }
 
   @override
