@@ -306,8 +306,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             label: 'History',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Setting',
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
           ),
         ],
       ),

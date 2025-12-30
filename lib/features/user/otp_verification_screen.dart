@@ -200,7 +200,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         keyboardType: TextInputType.number,
                         maxLength: 1,
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: _appTheme.textColor,
                         ),

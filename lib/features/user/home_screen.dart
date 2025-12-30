@@ -25,6 +25,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String _currentLocationName = "Getting location...";
   bool _isLoadingLocation = true;
   bool _hasTriedLocation = false;
+  bool _isFetchingLocation = false; // Prevent concurrent requests
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
 
   @override
   void initState() {
@@ -38,7 +41,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
     // Delay location fetch slightly to ensure widget is mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _getCurrentLocation();
+      if (mounted && !_isFetchingLocation) {
+        _getCurrentLocation();
+      }
     });
   }
 
@@ -49,9 +54,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if ((_currentLocationName == "Loading location..." || 
          _currentLocationName == "Getting location..." ||
          _currentLocationName.isEmpty) && 
-        _isLoadingLocation) {
+        _isLoadingLocation &&
+        !_isFetchingLocation &&
+        _retryCount < _maxRetries) {
       Future.delayed(const Duration(milliseconds: 1000), () {
-        if (mounted && (_currentLocationName.isEmpty || _isLoadingLocation)) {
+        if (mounted && !_isFetchingLocation && (_currentLocationName.isEmpty || _isLoadingLocation)) {
           _getCurrentLocation();
         }
       });
@@ -62,8 +69,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     // Refresh location when app comes to foreground
-    if (state == AppLifecycleState.resumed) {
-      _getCurrentLocation();
+    if (state == AppLifecycleState.resumed && mounted && !_isFetchingLocation) {
+      // Reset retry count when app resumes
+      _retryCount = 0;
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && !_isFetchingLocation) {
+          _getCurrentLocation();
+        }
+      });
     }
   }
 
@@ -80,6 +93,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _getCurrentLocation() async {
+    // Prevent concurrent requests
+    if (_isFetchingLocation) {
+      print('⏸️ Location fetch already in progress, skipping...');
+      return;
+    }
+
+    // Check retry limit
+    if (_retryCount >= _maxRetries) {
+      print('⛔ Max retries reached, not fetching location');
+      if (mounted) {
+        setState(() {
+          if (_currentLocationName.isEmpty || 
+              _currentLocationName == "Getting location..." ||
+              _currentLocationName == "Tap to set location") {
+            _currentLocationName = "Unable to get location";
+          }
+          _isLoadingLocation = false;
+        });
+      }
+      return;
+    }
+
+    _isFetchingLocation = true;
     if (!_hasTriedLocation) {
       _hasTriedLocation = true;
     }
@@ -88,13 +124,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _isLoadingLocation = true;
-          if (_currentLocationName.isEmpty || _currentLocationName == "Tap to set location") {
+          if (_currentLocationName.isEmpty || 
+              _currentLocationName == "Tap to set location" ||
+              _currentLocationName == "Unable to get location") {
             _currentLocationName = "Getting location...";
           }
         });
       }
 
-      print('🔍 Starting location fetch...');
+      print('🔍 Starting location fetch... (Attempt ${_retryCount + 1}/$_maxRetries)');
 
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -105,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() {
             _currentLocationName = "Enable location services";
             _isLoadingLocation = false;
+            _isFetchingLocation = false;
           });
         }
         return;
@@ -119,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() {
             _currentLocationName = "Tap to set location";
             _isLoadingLocation = false;
+            _isFetchingLocation = false;
           });
         }
         return;
@@ -139,32 +179,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // If no last known position, get current position
       if (position == null) {
         print('📍 Getting current position...');
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium, // Changed from high to medium for faster response
-        ).timeout(
-          const Duration(seconds: 15),
-          onTimeout: () {
-            print('⏱️ Location request timed out');
-            throw TimeoutException('Location request timed out');
-          },
-        );
-        print('✅ Got current position: ${position.latitude}, ${position.longitude}');
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 20), // Increased timeout
+          ).timeout(
+            const Duration(seconds: 20),
+            onTimeout: () {
+              print('⏱️ Location request timed out');
+              throw TimeoutException('Location request timed out');
+            },
+          );
+          print('✅ Got current position: ${position.latitude}, ${position.longitude}');
+        } catch (e) {
+          print('⚠️ getCurrentPosition failed: $e');
+          // If current position fails, try with lower accuracy
+          try {
+            position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.low,
+              timeLimit: const Duration(seconds: 15),
+            ).timeout(
+              const Duration(seconds: 15),
+            );
+            print('✅ Got current position (low accuracy): ${position.latitude}, ${position.longitude}');
+          } catch (e2) {
+            print('❌ Low accuracy position also failed: $e2');
+            rethrow;
+          }
+        }
       }
 
       // Reverse geocode to get address
       print('🌐 Reverse geocoding...');
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          print('⏱️ Geocoding timed out');
-          return <Placemark>[];
-        },
-      );
-
-      print('📍 Placemarks found: ${placemarks.length}');
+      List<Placemark> placemarks = [];
+      try {
+        placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        ).timeout(
+          const Duration(seconds: 15), // Increased timeout
+          onTimeout: () {
+            print('⏱️ Geocoding timed out');
+            return <Placemark>[];
+          },
+        );
+        print('📍 Placemarks found: ${placemarks.length}');
+      } catch (e) {
+        print('⚠️ Geocoding error: $e');
+        placemarks = [];
+      }
 
       if (placemarks.isNotEmpty && mounted) {
         Placemark place = placemarks[0];
@@ -207,7 +270,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() {
             _currentLocationName = address.isNotEmpty ? address : "Current Location";
             _isLoadingLocation = false;
+            _isFetchingLocation = false;
+            _retryCount = 0; // Reset retry count on success
           });
+          print('🔄 setState called with location: $_currentLocationName');
         }
       } else if (mounted && position != null) {
         // If geocoding fails, show coordinates as fallback
@@ -215,26 +281,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         setState(() {
           _currentLocationName = "${position!.latitude.toStringAsFixed(4)}, ${position!.longitude.toStringAsFixed(4)}";
           _isLoadingLocation = false;
+          _isFetchingLocation = false;
+          _retryCount = 0; // Reset retry count on success
         });
       } else if (mounted) {
         setState(() {
           _currentLocationName = _currentLocationName.isEmpty ? "Tap to set location" : _currentLocationName;
           _isLoadingLocation = false;
+          _isFetchingLocation = false;
         });
       }
     } catch (e, stackTrace) {
       print('❌ Error getting location: $e');
       print('Stack trace: $stackTrace');
+      
+      _retryCount++;
+      _isFetchingLocation = false;
+      
       if (mounted) {
-        setState(() {
-          // Only set fallback if we don't have a location yet
-          if (_currentLocationName.isEmpty || 
-              _currentLocationName == "Getting location..." ||
-              _currentLocationName == "Loading location...") {
-            _currentLocationName = "Tap to set location";
-          }
-          _isLoadingLocation = false;
-        });
+        if (_retryCount < _maxRetries) {
+          // Retry after a delay
+          print('🔄 Retrying location fetch in 2 seconds... (${_retryCount}/$_maxRetries)');
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted && !_isFetchingLocation) {
+              _getCurrentLocation();
+            }
+          });
+          setState(() {
+            _isLoadingLocation = true;
+            _currentLocationName = "Retrying...";
+          });
+        } else {
+          // Max retries reached
+          setState(() {
+            // Only set fallback if we don't have a location yet
+            if (_currentLocationName.isEmpty || 
+                _currentLocationName == "Getting location..." ||
+                _currentLocationName == "Loading location..." ||
+                _currentLocationName == "Retrying...") {
+              _currentLocationName = "Tap to set location";
+            }
+            _isLoadingLocation = false;
+          });
+        }
       }
     }
   }
@@ -257,145 +346,124 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         backgroundColor: _appTheme.backgroundColor,
 
         /// APP BAR
-        appBar: AppBar(
-          backgroundColor: _appTheme.cardColor,
-      elevation: 0,
-      toolbarHeight: 80,
-      automaticallyImplyLeading: false,
-      leading: IconButton(
-        icon: Icon(
-          Icons.menu,
-          color: _appTheme.textColor,
-        ),
-        onPressed: () {
-          // Handle menu tap
-        },
-      ),
-      title: InkWell(
-        onTap: () {
-          // Refresh location when tapped
-          _getCurrentLocation();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const MapLocationScreen(),
-            ),
-          );
-        },
-        onLongPress: () {
-          // Long press to manually refresh location
-          _getCurrentLocation();
-        },
-        child: IntrinsicHeight(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Always show "Current location" label
-              Text(
-                "Current location",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF8E8E8E),
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-              const SizedBox(height: 2),
-              // Location name row
-              Row(
-                children: [
-                  Expanded(
-                    child: _isLoadingLocation
-                        ? Row(
-                            children: [
-                              SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  _currentLocationName.isNotEmpty 
-                                      ? _currentLocationName 
-                                      : "Getting location...",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: const Color(0xFF121212),
-                                    fontWeight: FontWeight.w600,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(80),
+          child: AppBar(
+            backgroundColor: _appTheme.cardColor,
+            elevation: 0,
+            toolbarHeight: 80,
+            automaticallyImplyLeading: false,
+            // leading: IconButton(
+            //   icon: Icon(
+            //     Icons.menu,
+            //     color: _appTheme.textColor,
+            //   ),
+            //   onPressed: () {
+            //     // Handle menu tap
+            //   },
+            // ),
+            title: InkWell(
+              onTap: () {
+                // Refresh location when tapped
+                _getCurrentLocation();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MapLocationScreen(),
+                  ),
+                );
+              },
+              onLongPress: () {
+                // Long press to manually refresh location
+                _getCurrentLocation();
+              },
+              child: Builder(
+                builder: (context) {
+                  print('🎨 Building AppBar title. Location: "$_currentLocationName", Loading: $_isLoadingLocation');
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Always show "Current location" label
+                      Text(
+                        "Current location",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF8E8E8E),
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Location name row
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.5,
+                            child: _isLoadingLocation
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          _currentLocationName.isNotEmpty 
+                                              ? _currentLocationName 
+                                              : "Getting location...",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: const Color(0xFF121212),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    _currentLocationName.isNotEmpty 
+                                        ? _currentLocationName 
+                                        : "Tap to set location",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: _currentLocationName.isNotEmpty 
+                                          ? const Color(0xFF121212)
+                                          : const Color(0xFF8E8E8E),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            _currentLocationName.isNotEmpty 
-                                ? _currentLocationName 
-                                : "Tap to set location",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: _currentLocationName.isNotEmpty 
-                                  ? const Color(0xFF121212)
-                                  : const Color(0xFF8E8E8E),
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
                           ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: const Color(0xFF121212),
-                    size: 18,
-                  ),
-                ],
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: const Color(0xFF121212),
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
-            ],
-          ),
-        ),
-      ),
-      titleSpacing: 8,
-      centerTitle: false,
+            ),
+            titleSpacing: 8,
+            centerTitle: false,
 
       /// TOP RIGHT ICONS
-      actions: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-           
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: _appTheme.brandRed,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    "1",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+      actions: const [],
+          ),
         ),
-        const SizedBox(width: 8),
-      ],
-      ),
 
       /// BODY
        body: SingleChildScrollView(
@@ -480,14 +548,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                               );
                             }),
-                            _rideOption('Parcel', 'assets/parcel1.png', () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const DropScreen(rideType: 'Parcel'),
-                                ),
-                              );
-                            }),
+                            // _rideOption('Parcel', 'assets/parcel1.png', () {
+                            //   Navigator.push(
+                            //     context,
+                            //     MaterialPageRoute(
+                            //       builder: (_) => const DropScreen(rideType: 'Parcel'),
+                            //     ),
+                            //   );
+                            // }),
                             _rideOption('Truck', 'assets/truck1.png', () {
                               Navigator.push(
                                 context,
@@ -525,8 +593,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                         const SizedBox(height: 24),
                         
-                        /// BOTTOM CONTENT IMAGE
-                        SizedBox(
+                        /// BOTTOM CONTENT - EARNING BANNER
+                      SizedBox(
                           width: double.infinity,
                           child: Image.asset(
                             'assets/Bottom Content.png',
@@ -534,20 +602,80 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             errorBuilder: (context, error, stackTrace) => SizedBox(),
                           ),
                         ),
-
                         const SizedBox(height: 40),
 
                         /// FOOTER
                         Center(
                           child: Column(
                             children: [
-                              Text(
-                                "Made For India | Rooted in Hyderabad",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: _appTheme.textGrey,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Indian Flag Icon
+                                  Image.asset(
+                                    'assets/flag_india.png',
+                                    width: 16,
+                                    height: 16,
+                                    errorBuilder: (context, error, stackTrace) => const SizedBox(width: 16, height: 16),
+                                  ),
+                                 
+                                  // "Made For India" text
+                                  Text(
+                                    "Made For India",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Separator
+                                  Text(
+                                    "|",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // "Rooted in" text
+                                  Text(
+                                    "Rooted in",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                 
+                                  // Charminar icon (replaces 'H' in Hyderabad) and "yderabad" text combined
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        'assets/charminar.png',
+                                        width: 20,
+                                        height: 18,
+                                        errorBuilder: (context, error, stackTrace) => const SizedBox(width: 20, height: 18),
+                                      ),
+                                      Transform.translate(
+                                        offset: const Offset(-6, 0),
+                                        child: Text(
+                                          "yderabad",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black,
+                                            letterSpacing: 0,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 20),
                             ],
@@ -599,7 +727,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             BottomNavigationBarItem(
                 icon: const Icon(Icons.history), label: localizations.history),
             BottomNavigationBarItem(
-                icon: const Icon(Icons.settings_outlined), label: localizations.setting),
+                icon: const Icon(Icons.person_outline), label: 'Profile'),
           ],
         ),
       ),
@@ -615,21 +743,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             width: 70,
             height: 70,
             decoration: BoxDecoration(
-              color: _appTheme.iconBgColor,
+              color: Colors.white, // White background
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _appTheme.textGrey.withOpacity(0.2), // Border color
+                width: 1, // Border width
+              ),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.location_on,
-                    color: _appTheme.brandRed,
-                    size: 40,
-                  );
-                },
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.location_on,
+                      color: _appTheme.brandRed,
+                      size: 40,
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -777,6 +912,184 @@ Widget _offerCard(
     ),
   );
 }
+
+  /// EARNING BANNER
+  Widget _buildEarningBanner() {
+    return Container(
+      width: double.infinity,
+      height: 200,
+      margin: const EdgeInsets.only(left: 1, right: 0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFEEF1F4), // Light grey background
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Green diagonal section on the right with vector
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: ClipPath(
+              clipper: DiagonalClipper(),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.42,
+                child: Stack(
+                  children: [
+                    // Vector background (green diagonal)
+                    Positioned.fill(
+                      child: Image.asset(
+                        'assets/home_bottom_vector.png',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.centerRight,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: const Color(0xFF4CAF50),
+                        ),
+                      ),
+                    ),
+                    // Bike illustration - positioned on the left side of green section
+                    Positioned(
+                      left: 20,
+                      bottom: 20,
+                      child: Image.asset(
+                        'assets/home_bottom_bike.png',
+                        height: 120,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                      ),
+                    ),
+                    // Auto illustration - positioned on the right side of green section
+                    Positioned(
+                      right: 0,
+                      bottom: 15,
+                      child: Image.asset(
+                        'assets/home_bottom_auto.png',
+                        height: 130,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                      ),
+                    ),
+                    // T&C Apply text
+                    Positioned(
+                      right: 12,
+                      bottom: 8,
+                      child: Text(
+                        'T&C Apply',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Text content on the left
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.58,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Main heading - line 1
+                  Text(
+                    'Start Earning Today',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: _appTheme.textColor,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Main heading - line 2
+                  Text(
+                    'and Earn ₹250/-',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: _appTheme.textColor,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Main heading - line 3
+                  Text(
+                    'Joining Bonus',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: _appTheme.textColor,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // Main heading - line 4
+                  Text(
+                    'Instantly!',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: _appTheme.textColor,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Subtitle box
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _appTheme.textGrey.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Switch to Pikkar and keep\n100% of your income - No\ncommission, No worries! for\nlifetime',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Diagonal Clipper for green section
+class DiagonalClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    // Start from top-left of the diagonal section
+    path.moveTo(size.width * 0.4, 0);
+    // Line to top-right
+    path.lineTo(size.width, 0);
+    // Line to bottom-right
+    path.lineTo(size.width, size.height);
+    // Diagonal line back to bottom-left of diagonal section
+    path.lineTo(size.width * 0.2, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 /// TOP ICON

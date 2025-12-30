@@ -298,12 +298,12 @@ class _DropScreenState extends State<DropScreen> {
   }
 
   void _proceed() {
-    if (_selectedLocationName != null && _pickupLocationName != null) {
+    if (_selectedLocationName != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => RideBookingScreen(
-            pickupLocation: _pickupLocationName!,
+            pickupLocation: _pickupLocationName ?? 'Current Location',
             dropLocation: _selectedLocationName!,
             rideType: widget.rideType,
           ),
@@ -312,7 +312,7 @@ class _DropScreenState extends State<DropScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select both pickup and drop locations'),
+          content: Text('Please select a drop location'),
           backgroundColor: _appTheme.brandRed,
         ),
       );
@@ -339,298 +339,239 @@ class _DropScreenState extends State<DropScreen> {
             'Drop',
             style: TextStyle(
               color: _appTheme.textColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          centerTitle: true,
+          centerTitle: false,
+          actions: [
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _appTheme.textGrey.withOpacity(0.3),
+                  width: 1,
+                ),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: TextButton.icon(
+                onPressed: _selectDropOnMap,
+                icon: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _appTheme.brandRed,
+                  ),
+                ),
+                label: Text(
+                  'Select on map',
+                  style: TextStyle(
+                    color: _appTheme.textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        body: Column(
-          children: [
-            // Select on Map Buttons (Side by Side)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _selectPickupOnMap,
-                      icon: Icon(Icons.map, color: Colors.white, size: 18),
-                      label: Text(
-                        'Pickup',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _appTheme.brandRed,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+
+              // Pickup and Drop Search Results Card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _appTheme.dividerColor,
+                      width: 1,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _selectDropOnMap,
-                      icon: Icon(Icons.map, color: Colors.white, size: 18),
-                      label: Text(
-                        'Drop',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Pickup Search Bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _appTheme.iconBgColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _appTheme.brandRed,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Pickup Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _appTheme.iconBgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _pickupSearchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search for pickup location',
-                    hintStyle: TextStyle(color: _appTheme.textGrey),
-                    prefixIcon: Icon(Icons.location_on, color: _appTheme.brandRed, size: 20),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                  style: TextStyle(color: _appTheme.textColor),
-                  onTap: () {
-                    setState(() {
-                      _showPickupSearch = true;
-                      _showDropSearch = false;
-                    });
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Drop Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _appTheme.iconBgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _dropSearchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search for drop location',
-                    hintStyle: TextStyle(color: _appTheme.textGrey),
-                    prefixIcon: Icon(Icons.location_on, color: Colors.green, size: 20),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                  style: TextStyle(color: _appTheme.textColor),
-                  onTap: () {
-                    setState(() {
-                      _showDropSearch = true;
-                      _showPickupSearch = false;
-                    });
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Search Results or Location List
-            Expanded(
-              child: _isSearchingPickup || _isSearchingDrop
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
-                      ),
-                    )
-                  : _showPickupSearch && _pickupSearchResults.isNotEmpty
-                      ? ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _pickupSearchResults.length,
-                          itemBuilder: (context, index) {
-                            final result = _pickupSearchResults[index];
-                            return InkWell(
-                              onTap: () => _getPlaceDetails(
-                                result['place_id'],
-                                result['description'],
-                                true,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: _appTheme.dividerColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.location_on,
-                                      color: _appTheme.brandRed,
-                                      size: 24,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        result['description'],
-                                        style: TextStyle(
-                                          color: _appTheme.textColor,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                      : _showDropSearch && _dropSearchResults.isNotEmpty
-                          ? ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _dropSearchResults.length,
-                              itemBuilder: (context, index) {
-                                final result = _dropSearchResults[index];
-                                return InkWell(
-                                  onTap: () => _getPlaceDetails(
-                                    result['place_id'],
-                                    result['description'],
-                                    false,
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: _appTheme.dividerColor,
-                                          width: 1,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.location_on,
-                                          color: Colors.green,
-                                          size: 24,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            result['description'],
-                                            style: TextStyle(
-                                              color: _appTheme.textColor,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : ListView(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              children: [
-                                // Selected Pickup Location
-                                if (_pickupLocationName != null)
-                                  _locationItem(
-                                    _pickupLocationName!,
-                                    isSelected: true,
-                                    isPickup: true,
-                                    onTap: () {},
-                                  ),
-                                // Selected Drop Location
-                                if (_selectedLocationName != null)
-                                  _locationItem(
-                                    _selectedLocationName!,
-                                    isSelected: true,
-                                    isPickup: false,
-                                    onTap: () {},
-                                  ),
-                                // Suggested Locations
-                                _locationItem(
-                                  'Hotel Grand Sitara, Banjara Hills, Hyderabad, Telangana',
-                                  isPickup: false,
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedLocationName =
-                                          'Hotel Grand Sitara, Banjara Hills, Hyderabad, Telangana';
-                                    });
-                                  },
-                                ),
-                                _locationItem(
-                                  'Lulu Mall, Kondapur, Hyderabad, Telangana',
-                                  isPickup: false,
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedLocationName =
-                                          'Lulu Mall, Kondapur, Hyderabad, Telangana';
-                                    });
-                                  },
-                                ),
-                                _locationItem(
-                                  'GVK Mall, Banjara Hills, Hyderabad',
-                                  isPickup: false,
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedLocationName = 'GVK Mall, Banjara Hills, Hyderabad';
-                                    });
-                                  },
-                                ),
-                                _locationItem(
-                                  'Metro Convention Classic, Hyderabad',
-                                  isPickup: false,
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedLocationName =
-                                          'Metro Convention Classic, Hyderabad';
-                                    });
-                                  },
-                                ),
-                              ],
+                        child: TextField(
+                          controller: _pickupSearchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search for pickup location',
+                            hintStyle: TextStyle(color: _appTheme.textGrey),
+                            prefixIcon: Icon(Icons.location_on, color: _appTheme.brandRed, size: 20),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
                             ),
-            ),
+                          ),
+                          style: TextStyle(color: _appTheme.textColor),
+                          onTap: () {
+                            setState(() {
+                              _showPickupSearch = true;
+                              _showDropSearch = false;
+                            });
+                          },
+                        ),
+                      ),
+                      // Pickup Search Results (top)
+                      if (_showPickupSearch && _pickupSearchResults.isNotEmpty)
+                        ..._pickupSearchResults.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final result = entry.value;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _suggestedLocationItem(
+                                result['description'],
+                                isSelected: false,
+                                onTap: () => _getPlaceDetails(
+                                  result['place_id'],
+                                  result['description'],
+                                  true,
+                                ),
+                              ),
+                              if (index < _pickupSearchResults.length - 1 || (_showDropSearch && _dropSearchResults.isNotEmpty))
+                                Divider(height: 1, color: _appTheme.dividerColor),
+                            ],
+                          );
+                        }).toList(),
+                      // Divider between pickup and drop if both have results
+                      if (_showPickupSearch && _pickupSearchResults.isNotEmpty && _showDropSearch && _dropSearchResults.isNotEmpty)
+                        Divider(height: 1, color: _appTheme.dividerColor),
+                      // Drop Search Bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _appTheme.iconBgColor,
+                          borderRadius: _showPickupSearch && _pickupSearchResults.isNotEmpty
+                              ? BorderRadius.zero
+                              : const BorderRadius.only(
+                                  bottomLeft: Radius.circular(12),
+                                  bottomRight: Radius.circular(12),
+                                ),
+                        ),
+                        child: TextField(
+                          controller: _dropSearchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search for drop location',
+                            hintStyle: TextStyle(color: _appTheme.textGrey),
+                            prefixIcon: Icon(Icons.location_on, color: Colors.green, size: 20),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                          style: TextStyle(color: _appTheme.textColor),
+                          onTap: () {
+                            setState(() {
+                              _showDropSearch = true;
+                              _showPickupSearch = false;
+                            });
+                          },
+                        ),
+                      ),
+                      // Drop Search Results (bottom)
+                      if (_showDropSearch && _dropSearchResults.isNotEmpty)
+                        ..._dropSearchResults.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final result = entry.value;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _suggestedLocationItem(
+                                result['description'],
+                                isSelected: false,
+                                onTap: () => _getPlaceDetails(
+                                  result['place_id'],
+                                  result['description'],
+                                  false,
+                                ),
+                              ),
+                              if (index < _dropSearchResults.length - 1)
+                                Divider(height: 1, color: _appTheme.dividerColor),
+                            ],
+                          );
+                        }).toList(),
+                    ],
+                  ),
+                ),
+              ),
 
-            // Proceed Button
-            if (_selectedLocationName != null && _pickupLocationName != null)
-              Container(
+              const SizedBox(height: 16),
+
+              // Recent Locations List
+              if (!_showPickupSearch && !_showDropSearch)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      // Recent Locations
+                      _recentLocationItem(
+                        'Lulu Mall',
+                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
+                        isFavorited: true,
+                        onTap: () {
+                          setState(() {
+                            _selectedLocationName =
+                                'Lulu Mall, Kondapur, Hyderabad, Telangana';
+                          });
+                        },
+                      ),
+                      _recentLocationItem(
+                        'Hotal Grand Sitara',
+                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
+                        isFavorited: false,
+                        onTap: () {
+                          setState(() {
+                            _selectedLocationName =
+                                'Hotel Grand Sitara, Banjara Hills, Hyderabad, Telangana';
+                          });
+                        },
+                      ),
+                      _recentLocationItem(
+                        'GVK Mall',
+                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
+                        isFavorited: false,
+                        onTap: () {
+                          setState(() {
+                            _selectedLocationName = 'GVK Mall, Banjara Hills, Hyderabad';
+                          });
+                        },
+                      ),
+                      _recentLocationItem(
+                        'Metro Convention Classic',
+                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
+                        isFavorited: false,
+                        onTap: () {
+                          setState(() {
+                            _selectedLocationName =
+                                'Metro Convention Classic, Hyderabad';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 100), // Space for proceed button
+            ],
+          ),
+        ),
+        bottomNavigationBar: _selectedLocationName != null
+            ? Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -662,14 +603,62 @@ class _DropScreenState extends State<DropScreen> {
                     ),
                   ),
                 ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _suggestedLocationItem(String location, {bool isSelected = false, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? Colors.green : _appTheme.brandRed,
+                  width: 2,
+                ),
+                color: isSelected ? Colors.green : Colors.transparent,
               ),
+              child: isSelected
+                  ? null
+                  : Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _appTheme.brandRed,
+                        ),
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                location,
+                style: TextStyle(
+                  color: _appTheme.textColor,
+                  fontSize: 14,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _locationItem(String location, {bool isSelected = false, bool isPickup = false, VoidCallback? onTap}) {
+  Widget _recentLocationItem(String name, String address, {bool isFavorited = false, VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -684,54 +673,44 @@ class _DropScreenState extends State<DropScreen> {
         ),
         child: Row(
           children: [
-            if (isSelected)
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isPickup ? _appTheme.brandRed : Colors.green,
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isPickup ? _appTheme.brandRed : Colors.green,
+            Icon(
+              Icons.access_time,
+              color: _appTheme.textGrey,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: _appTheme.textColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-              )
-            else
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.green,
-                ),
-              ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                location,
-                style: TextStyle(
-                  color: _appTheme.textColor,
-                  fontSize: 14,
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    address,
+                    style: TextStyle(
+                      color: _appTheme.textGrey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
             IconButton(
               icon: Icon(
-                Icons.favorite_border,
-                color: _appTheme.textGrey,
+                isFavorited ? Icons.favorite : Icons.favorite_border,
+                color: isFavorited ? _appTheme.brandRed : _appTheme.textGrey,
                 size: 20,
               ),
-              onPressed: () {},
+              onPressed: () {
+                // Toggle favorite
+              },
             ),
           ],
         ),
