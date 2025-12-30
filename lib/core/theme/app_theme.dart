@@ -14,7 +14,7 @@ class AppTheme extends ChangeNotifier {
   String get selectedLanguage => _selectedLanguage;
 
   // Theme colors
-  Color get backgroundColor => _themeEnabled ? const Color(0xFF2A2A2A) : const Color(0xFFF2F2F2);
+  Color get backgroundColor => _themeEnabled ? const Color(0xFF2A2A2A) : const Color(0xFFFAFAFA);
   Color get cardColor => _themeEnabled ? Colors.grey.shade800 : Colors.white;
   Color get textColor => _themeEnabled ? Colors.white : const Color(0xFF121212);
   Color get iconBgColor => _themeEnabled ? Colors.grey.shade700 : const Color(0xFFF2F2F2);

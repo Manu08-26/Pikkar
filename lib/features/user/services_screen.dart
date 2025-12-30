@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'settings_screen.dart';
+import 'profile_screen.dart';
 import 'history_screen.dart';
 import 'map_location_screen.dart';
 import '../../core/theme/app_theme.dart';
@@ -352,7 +352,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
           } else if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
             );
           }
         },

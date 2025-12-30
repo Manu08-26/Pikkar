@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'services_screen.dart';
-import 'settings_screen.dart';
+import 'profile_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/localization/app_localizations.dart';
 
@@ -141,7 +141,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           } else if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
             );
           }
         },

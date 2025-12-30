@@ -8,7 +8,7 @@ import 'promo_code_details_screen.dart';
 import 'drop_screen.dart';
 import 'map_location_screen.dart';
 import 'services_screen.dart';
-import 'settings_screen.dart';
+import 'profile_screen.dart';
 import 'history_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -481,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: _appTheme.textColor,
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -490,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 14,
-                            color: _appTheme.textGrey,
+                            color: _appTheme.textColor,
                           ),
                         ),
                       
@@ -714,7 +714,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const SettingsScreen(),
+                  builder: (_) => const ProfileScreen(),
                 ),
               );
             }

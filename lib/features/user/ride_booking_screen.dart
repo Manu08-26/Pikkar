@@ -217,7 +217,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       Polyline(
         polylineId: const PolylineId('route'),
         points: [pickup, drop],
-        color: _appTheme.brandRed,
+        color: Colors.black,
         width: 5,
         patterns: [],
       ),
@@ -540,7 +540,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         return {
           'image': 'assets/bike1.png',
           'time': '2 Min',
-          'vehicles': '12',
+          'passengers': '1',
           'price': '₹65',
           'icon': Icons.two_wheeler,
           'tagline': 'Ride Easy. Book Fast.',
@@ -549,7 +549,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         return {
           'image': 'assets/auto1.png',
           'time': '2 Min',
-          'vehicles': '32',
+          'passengers': '3',
           'price': '₹90',
           'icon': Icons.airport_shuttle,
         };
@@ -557,7 +557,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         return {
           'image': 'assets/car1.png',
           'time': '2 Min',
-          'vehicles': '42',
+          'passengers': '4',
           'price': '₹180',
           'icon': Icons.directions_car,
         };
@@ -565,7 +565,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         return {
           'image': 'assets/car1.png',
           'time': '2 Min',
-          'vehicles': '52',
+          'passengers': '5',
           'price': '₹245',
           'icon': Icons.directions_car,
         };
@@ -573,7 +573,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         return {
           'image': 'assets/bike1.png',
           'time': '2 Min',
-          'vehicles': '12',
+          'passengers': '1',
           'price': '₹65',
           'icon': Icons.two_wheeler,
         };
@@ -587,31 +587,6 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       textDirection: _appTheme.textDirection,
       child: Scaffold(
         backgroundColor: _appTheme.backgroundColor,
-        appBar: AppBar(
-          backgroundColor: _appTheme.cardColor,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
-              color: _appTheme.textColor,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            widget.pickupLocation ?? 'Pikkar',
-            style: TextStyle(
-              color: _appTheme.textColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.share, color: _appTheme.textColor),
-              onPressed: () {},
-            ),
-          ],
-        ),
         body: Stack(
           children: [
             // Map View with all features enabled
@@ -637,91 +612,49 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
               zoomGesturesEnabled: true,
             ),
 
-            // Location Display Card (Read-only)
+            // Navigation Buttons
             Positioned(
-              top: 16,
+              top: 260,
               left: 16,
-              right: 16,
               child: Container(
-                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
+                      blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    // Pickup Location
-                    Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.circle, color: Colors.white, size: 8),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            widget.pickupLocation ?? 'Pickup location',
-                            style: TextStyle(
-                              color: _appTheme.textColor,
-                              fontSize: 14,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Divider
-                    Container(
-                      height: 1,
-                      color: _appTheme.dividerColor,
-                      margin: const EdgeInsets.only(left: 12),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Drop Location
-                    Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: _appTheme.brandRed,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.circle, color: Colors.white, size: 8),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            widget.dropLocation ?? 'Drop location',
-                            style: TextStyle(
-                              color: _appTheme.textColor,
-                              fontSize: 14,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                child: IconButton(
+                  icon: Icon(
+                    _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
+                    color: Colors.black,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 260,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
                   ],
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.my_location, color: Colors.black),
+                  onPressed: _updateMapToCurrentLocation,
                 ),
               ),
             ),
@@ -737,35 +670,9 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                 ),
               ),
 
-            // My Location Button
-            Positioned(
-              bottom: 400,
-              right: 16,
-              child: FloatingActionButton(
-                mini: true,
-                backgroundColor: _appTheme.cardColor,
-                onPressed: _updateMapToCurrentLocation,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.my_location, color: _appTheme.textColor, size: 20),
-                    const SizedBox(height: 2),
-                    Text(
-                      'My Location',
-                      style: TextStyle(
-                        fontSize: 8,
-                        color: _appTheme.textColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Ride Options Panel (always show when locations are provided)
-            if (widget.pickupLocation != null && widget.dropLocation != null)
-              DraggableScrollableSheet(
-                initialChildSize: 0.55,
+            // Ride Options Panel (always visible)
+            DraggableScrollableSheet(
+                initialChildSize: 0.62,
                 minChildSize: 0.4,
                 maxChildSize: 0.85,
                 builder: (context, scrollController) {
@@ -830,44 +737,12 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                                 ),
                               ),
 
-                              const SizedBox(height: 16),
-
-                              // Payment Method
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Cash',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: _appTheme.textColor,
-                                    ),
-                                  ),
-                                  Text(
-                                    ' | ',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: _appTheme.textGrey,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Direct pay to Driver',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: _appTheme.textColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
                               const SizedBox(height: 20),
                             ],
                           ),
                         ),
 
-                        // Book Ride Button
+                        // Payment Method and Book Ride Button in same row
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
@@ -880,41 +755,74 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                             ),
                           ),
                           child: SafeArea(
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // Navigate to Finding Driver screen
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => FindingDriverScreen(
-                                        pickupLocation: widget.pickupLocation ?? 'Pickup Location',
-                                        dropLocation: widget.dropLocation ?? 'Drop Location',
-                                        rideType: _selectedRideType,
-                                        pickupLatLng: _pickupLatLng,
-                                        dropLatLng: _dropLatLng,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Payment Method (Left)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Cash',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: _appTheme.textColor,
                                       ),
                                     ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _appTheme.brandRed,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 0,
+                                    Text(
+                                      ' | ',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: _appTheme.textGrey,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Direct pay to Driver',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: _appTheme.textColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                child: Text(
-                                  'Book Ride',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                // Book Ride Button (Right)
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // Navigate to Finding Driver screen
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => FindingDriverScreen(
+                                          pickupLocation: widget.pickupLocation ?? 'Pickup Location',
+                                          dropLocation: widget.dropLocation ?? 'Drop Location',
+                                          rideType: _selectedRideType,
+                                          pickupLatLng: _pickupLatLng,
+                                          dropLatLng: _dropLatLng,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _appTheme.brandRed,
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    'Book Ride',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -923,6 +831,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                   );
                 },
               ),
+          
           ],
         ),
       ),
@@ -943,14 +852,18 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? _appTheme.brandRed.withOpacity(0.1)
-              : _appTheme.iconBgColor,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? _appTheme.brandRed : Colors.transparent,
-            width: 2,
-          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 0,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
@@ -993,7 +906,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${details['time']} | ${details['vehicles']}',
+                    '${details['time']} | ${details['passengers']}',
                     style: TextStyle(
                       fontSize: 12,
                       color: _appTheme.textGrey,

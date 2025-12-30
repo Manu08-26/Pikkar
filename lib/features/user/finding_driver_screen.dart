@@ -337,42 +337,12 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 16),
-
-                            // Payment Method
-                            Row(
-                              children: [
-                                Icon(Icons.money, color: _appTheme.textColor, size: 20),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Cash',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: _appTheme.textColor,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Direct pay to Driver',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: _appTheme.textGrey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-
                             const SizedBox(height: 20),
                           ],
                         ),
                       ),
 
-                      // Cancel Ride Button
+                      // Payment Method and Cancel Ride Button in same row
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -385,27 +355,60 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                           ),
                         ),
                         child: SafeArea(
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              onPressed: _handleCancelRide,
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: _appTheme.brandRed, width: 2),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                backgroundColor: Colors.white,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Payment Method (Left)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Cash',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: _appTheme.textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    ' | ',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: _appTheme.textGrey,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Direct pay to Driver',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: _appTheme.textColor,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: Text(
-                                'Cancel Ride',
-                                style: TextStyle(
-                                  color: _appTheme.brandRed,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                              // Cancel Ride Button (Right)
+                              OutlinedButton(
+                                onPressed: _handleCancelRide,
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: _appTheme.brandRed, width: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  backgroundColor: Colors.white,
+                                ),
+                                child: Text(
+                                  'Cancel Ride',
+                                  style: TextStyle(
+                                    color: _appTheme.brandRed,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
@@ -427,8 +430,16 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _appTheme.iconBgColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         children: [
