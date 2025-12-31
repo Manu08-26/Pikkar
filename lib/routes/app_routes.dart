@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../features/user/splash_screen.dart';
-import '../features/user/location_permission_screen.dart';
-import '../features/user/login_screen.dart';
-import '../features/user/otp_verification_screen.dart';
-import '../features/user/home_screen.dart';
+import '../features/user/auth/splash_screen.dart';
+import '../features/user/home/location_permission_screen.dart';
+import '../features/user/auth/login_screen.dart';
+import '../features/user/auth/otp_verification_screen.dart';
+import '../features/user/home/home_screen.dart';
 
 class AppRoutes {
   // Initial route - Splash Screen

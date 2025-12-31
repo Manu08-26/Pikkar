@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-import 'home_screen.dart';
-import 'services_screen.dart';
-import 'history_screen.dart';
-import 'notifications.dart';
+import '../auth/login_screen.dart';
+import '../home/home_screen.dart';
+import '../services/services_screen.dart';
+import '../history/history_screen.dart';
+import '../common/notifications.dart';
 import 'app_settings_screen.dart';
 import 'share_app_screen.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import 'rate_rides_screen.dart';
+import 'wallet_screen.dart';
+import 'saved_addresses_screen.dart';
+import 'help_support_screen.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -46,6 +50,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: _appTheme.cardColor,
           elevation: 0,
           automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Icon(
+              _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
+              color: _appTheme.textColor,
+            ),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HomeScreen(),
+                ),
+              );
+            },
+          ),
           title: Text(
             'Profile',
             style: TextStyle(
@@ -66,12 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
-            IconButton(
-              icon: Icon(Icons.account_balance_wallet_outlined, color: _appTheme.textColor),
-              onPressed: () {
-                // Navigate to wallet/payment screen
-              },
-            ),
+          
             const SizedBox(width: 8),
           ],
         ),
@@ -181,7 +194,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildMenuItem(
                       icon: Icons.star_outline,
                       title: 'Rate Your Rides',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RateRidesScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -200,17 +220,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildMenuItem(
-                      icon: Icons.account_balance_wallet_outlined,
-                      title: 'Wallet',
-                      subtitle: '₹0',
-                      onTap: () {},
-                    ),
+                  
                     Divider(height: 1, color: _appTheme.dividerColor),
                     _buildMenuItem(
                       icon: Icons.payment,
                       title: 'Payment Methods',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const WalletScreen(),
+                          ),
+                        );
+                      },
                     ),
                     Divider(height: 1, color: _appTheme.dividerColor),
                     _buildMenuItem(
@@ -238,20 +260,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildMenuItem(
                       icon: Icons.location_on_outlined,
                       title: 'Saved Addresses',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SavedAddressesScreen(),
+                          ),
+                        );
+                      },
                     ),
-                    Divider(height: 1, color: _appTheme.dividerColor),
-                    _buildMenuItem(
-                      icon: Icons.home_outlined,
-                      title: 'Home',
-                      onTap: () {},
-                    ),
-                    Divider(height: 1, color: _appTheme.dividerColor),
-                    _buildMenuItem(
-                      icon: Icons.work_outline,
-                      title: 'Work',
-                      onTap: () {},
-                    ),
+                   
                   ],
                 ),
               ),
@@ -272,14 +290,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildMenuItem(
                       icon: Icons.help_outline,
                       title: 'Help & Support',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpSupportScreen(),
+                          ),
+                        );
+                      },
                     ),
-                    Divider(height: 1, color: _appTheme.dividerColor),
-                    _buildMenuItem(
-                      icon: Icons.headset_mic_outlined,
-                      title: 'Contact Us',
-                      onTap: () {},
-                    ),
+                   
                     Divider(height: 1, color: _appTheme.dividerColor),
                     _buildMenuItem(
                       icon: Icons.description_outlined,
@@ -309,19 +329,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildMenuItem(
-                      icon: Icons.settings_outlined,
-                      title: 'App Settings',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AppSettingsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: _appTheme.dividerColor),
+                    // _buildMenuItem(
+                    //   icon: Icons.settings_outlined,
+                    //   title: 'App Settings',
+                    //   onTap: () {
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (_) => const AppSettingsScreen(),
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
+                    // Divider(height: 1, color: _appTheme.dividerColor),
                     _buildMenuItem(
                       icon: Icons.share_outlined,
                       title: 'Share App',

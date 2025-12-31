@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-import 'home_screen.dart';
-import 'services_screen.dart';
-import 'history_screen.dart';
+import '../auth/login_screen.dart';
+import '../home/home_screen.dart';
+import '../services/services_screen.dart';
+import '../history/history_screen.dart';
 import 'notifications.dart';
-import 'app_settings_screen.dart';
-import 'share_app_screen.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import '../profile/app_settings_screen.dart';
+import '../profile/share_app_screen.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

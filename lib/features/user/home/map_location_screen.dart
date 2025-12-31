@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class MapLocationScreen extends StatefulWidget {
   const MapLocationScreen({super.key});

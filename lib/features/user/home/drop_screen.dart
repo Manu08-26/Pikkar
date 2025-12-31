@@ -5,7 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'ride_booking_screen.dart';
-import '../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class DropScreen extends StatefulWidget {
   final String rideType; // Bike, Auto, Parcel, Truck

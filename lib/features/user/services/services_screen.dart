@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'profile_screen.dart';
-import 'history_screen.dart';
-import 'map_location_screen.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import '../home/home_screen.dart';
+import '../profile/profile_screen.dart';
+import '../history/history_screen.dart';
+import '../home/book_ride_screen.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -15,6 +15,7 @@ class ServicesScreen extends StatefulWidget {
 
 class _ServicesScreenState extends State<ServicesScreen> {
   final AppTheme _appTheme = AppTheme();
+  String? _selectedService;
 
   @override
   void initState() {
@@ -43,6 +44,20 @@ class _ServicesScreenState extends State<ServicesScreen> {
           backgroundColor: _appTheme.cardColor,
           elevation: 0,
           automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Icon(
+              _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
+              color: _appTheme.textColor,
+            ),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HomeScreen(),
+                ),
+              );
+            },
+          ),
           title: Text(
             localizations.services,
             style: TextStyle(
@@ -78,13 +93,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       description: 'Quick and reliable ride service.',
                       icon: Icons.local_taxi,
                       onTap: () {
-                        // Navigate to home screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeScreen(),
-                          ),
-                        );
+                        setState(() {
+                          _selectedService = 'Cab';
+                        });
+                        _showBookRideSheet();
                       },
                     ),
                   ),
@@ -96,13 +108,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       description: 'Secure and fast deliveries.',
                       icon: Icons.inventory_2,
                       onTap: () {
-                        // Navigate to home screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeScreen(),
-                          ),
-                        );
+                        setState(() {
+                          _selectedService = 'Parcel';
+                        });
+                        _showBookRideSheet();
                       },
                     ),
                   ),
@@ -118,13 +127,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       description: 'Efficient and reliable goods transport.',
                       icon: Icons.local_shipping,
                       onTap: () {
-                        // Navigate to home screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeScreen(),
-                          ),
-                        );
+                        setState(() {
+                          _selectedService = 'Freight';
+                        });
+                        _showBookRideSheet();
                       },
                     ),
                   ),
@@ -136,13 +142,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       description: 'Emergency medical transport.',
                       icon: Icons.medical_services,
                       onTap: () {
-                        // Navigate to map location screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MapLocationScreen(),
-                          ),
-                        );
+                        setState(() {
+                          _selectedService = 'Ambulance';
+                        });
+                        _showBookRideSheet();
                       },
                     ),
                   ),
@@ -237,6 +240,165 @@ class _ServicesScreenState extends State<ServicesScreen> {
         bottomNavigationBar: _buildBottomNav(context, 1),
       ),
     );
+  }
+
+  void _showBookRideSheet() {
+    if (_selectedService == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: _appTheme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: _appTheme.textGrey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Selected service info
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _appTheme.brandRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getServiceIcon(_selectedService!),
+                      color: _appTheme.brandRed,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedService!,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: _appTheme.textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _getServiceDescription(_selectedService!),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _appTheme.textGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              // Book Ride button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close bottom sheet
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookRideScreen(
+                          rideType: _getRideType(_selectedService!),
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _appTheme.brandRed,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Book Ride',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _getServiceIcon(String service) {
+    switch (service) {
+      case 'Cab':
+        return Icons.local_taxi;
+      case 'Parcel':
+        return Icons.inventory_2;
+      case 'Freight':
+        return Icons.local_shipping;
+      case 'Ambulance':
+        return Icons.medical_services;
+      default:
+        return Icons.directions_car;
+    }
+  }
+
+  String _getServiceDescription(String service) {
+    switch (service) {
+      case 'Cab':
+        return 'Quick and reliable ride service.';
+      case 'Parcel':
+        return 'Secure and fast deliveries.';
+      case 'Freight':
+        return 'Efficient and reliable goods transport.';
+      case 'Ambulance':
+        return 'Emergency medical transport.';
+      default:
+        return '';
+    }
+  }
+
+  String _getRideType(String service) {
+    // Map service names to ride types used in BookRideScreen
+    switch (service) {
+      case 'Cab':
+        return 'Cab';
+      case 'Parcel':
+        return 'Parcel';
+      case 'Freight':
+        return 'Truck'; // Freight uses Truck ride type
+      case 'Ambulance':
+        return 'Ambulance';
+      default:
+        return service;
+    }
   }
 
   Widget _serviceCard(

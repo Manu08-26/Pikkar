@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});

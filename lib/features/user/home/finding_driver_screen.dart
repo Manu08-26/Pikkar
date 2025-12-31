@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'cancel_ride_reasons_screen.dart';
-import '../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class FindingDriverScreen extends StatefulWidget {
   final String pickupLocation;

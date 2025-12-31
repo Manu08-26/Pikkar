@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'services_screen.dart';
-import 'profile_screen.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import '../home/home_screen.dart';
+import '../services/services_screen.dart';
+import '../profile/profile_screen.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -42,6 +42,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
           backgroundColor: _appTheme.cardColor,
           elevation: 0,
           automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Icon(
+              _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
+              color: _appTheme.textColor,
+            ),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HomeScreen(),
+                ),
+              );
+            },
+          ),
           title: Text(
             localizations.history,
             style: TextStyle(

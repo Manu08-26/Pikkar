@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/localization/app_localizations.dart';
+import '../auth/login_screen.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class RentalRideScreen extends StatefulWidget {
   const RentalRideScreen({super.key});

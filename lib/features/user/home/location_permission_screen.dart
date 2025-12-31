@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'login_screen.dart';
-import '../../core/theme/app_theme.dart';
+import '../auth/login_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({super.key});

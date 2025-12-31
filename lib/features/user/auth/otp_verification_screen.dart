@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'home_screen.dart';
-import '../../core/theme/app_theme.dart';
+import '../home/home_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String phoneNumber;

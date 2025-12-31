@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import '../../core/theme/app_theme.dart';
+import '../home/home_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class CancelRideScreen extends StatefulWidget {
   final String rideType;
