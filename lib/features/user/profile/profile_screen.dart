@@ -50,19 +50,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: _appTheme.cardColor,
           elevation: 0,
           automaticallyImplyLeading: false,
-          leading: IconButton(
+          leadingWidth: 56,
+         leading: IconButton(
             icon: Icon(
               _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
               color: _appTheme.textColor,
             ),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const HomeScreen(),
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             'Profile',

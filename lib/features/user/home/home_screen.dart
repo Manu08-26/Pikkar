@@ -8,6 +8,7 @@ import '../common/promo_code_details_screen.dart';
 import 'drop_screen.dart';
 import 'book_ride_screen.dart';
 import 'map_location_screen.dart';
+import 'parcel_delivery_screen.dart';
 import '../services/services_screen.dart';
 import '../profile/profile_screen.dart';
 import '../history/history_screen.dart';
@@ -536,6 +537,7 @@ Widget build(BuildContext context) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 12),
             /// HEADER - QUOTES CAROUSEL
             Container(
               color: Colors.white,
@@ -662,8 +664,8 @@ Widget build(BuildContext context) {
                 children: [
                   const Text(
                     'Delivery Services',
-                    style: TextStyle(fontSize: 18, 
-                    fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 14, 
+                    fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 16),
 
@@ -671,14 +673,44 @@ Widget build(BuildContext context) {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _rideOption('Parcel', 'assets/All Icons Set-Pikkar_Parcel Bike.png', () {
+                        print('🔵 Parcel tapped!');
+                        try {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) {
+                                print('🔵 Building ParcelDeliveryScreen');
+                                return const ParcelDeliveryScreen(
+                                  serviceType: 'Parcel',
+                                );
+                              },
+                            ),
+                          ).then((_) {
+                            print('🔵 Navigation completed');
                         setState(() {
-                          _selectedDeliveryService = 'Parcel';
+                              _selectedDeliveryService = null;
+                            });
+                          }).catchError((error) {
+                            print('❌ Navigation error: $error');
                         });
+                        } catch (e, stackTrace) {
+                          print('❌ Error navigating: $e');
+                          print('Stack trace: $stackTrace');
+                        }
                       }, isSelected: _selectedDeliveryService == 'Parcel'),
                       const SizedBox(width: 20),
                       _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ParcelDeliveryScreen(
+                              serviceType: 'Delivery',
+                            ),
+                          ),
+                        ).then((_) {
                         setState(() {
-                          _selectedDeliveryService = 'Delivery';
+                            _selectedDeliveryService = null;
+                          });
                         });
                       }, isSelected: _selectedDeliveryService == 'Delivery'),
                       const SizedBox(width: 20),
@@ -721,8 +753,8 @@ Widget build(BuildContext context) {
                   const Text(
                     'Book Ride',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -834,10 +866,10 @@ Widget build(BuildContext context) {
 
                   /// TRENDING OFFERS
                   Text(
-                    localizations.trendingOffers,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                    'Trending Offers',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -886,6 +918,10 @@ Widget build(BuildContext context) {
                             const Text("|"),
                             const SizedBox(width: 8),
                             const Text("Rooted in"),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
                             Image.asset(
                               'assets/charminar.png',
                               width: 20,
@@ -893,7 +929,12 @@ Widget build(BuildContext context) {
                               errorBuilder: (_, __, ___) =>
                                   const SizedBox(width: 20, height: 18),
                             ),
-                            const Text("yderabad"),
+                                Transform.translate(
+                                  offset: const Offset(-3, 0),
+                                  child: const Text("yderabad"),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -956,22 +997,30 @@ Widget build(BuildContext context) {
 }
 
   Widget _rideOption(String title, String imagePath, VoidCallback onTap, {bool isSelected = false}) {
-          return InkWell(
-            onTap: onTap,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        print('🔵 Tapped: $title');
+        onTap();
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
       borderRadius: BorderRadius.circular(12),
             child: Column(
+            mainAxisSize: MainAxisSize.min,
               children: [
           Container(
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: Colors.white, // White background
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isSelected 
                     ? _appTheme.brandRed 
-                    : Colors.grey.shade300, // Light gray border
-                width: isSelected ? 2 : 1, // Border width
+                    : Colors.grey.shade300,
+                width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
                   ? [
@@ -1010,10 +1059,12 @@ Widget build(BuildContext context) {
                   style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.black, // Black text as per image
+                  color: Colors.black,
                   ),
                 ),
               ],
+          ),
+        ),
             ),
           );
         }

@@ -7,7 +7,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/localization/app_localizations.dart';
 import 'finding_driver_screen.dart';
 
 
@@ -31,6 +30,8 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
   final AppTheme _appTheme = AppTheme();
   GoogleMapController? _mapController;
   late String _selectedRideType; // Bike, Auto, Cab, SUV, Prime Cab
+  final List<String> _rideTypes = ['Bike', 'Auto', 'Cab', 'SUV'];
+  PageController? _rideTypePageController;
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
   BitmapDescriptor? _bikeMarker;
@@ -58,6 +59,16 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
     
     // Set selected ride type from widget parameter
     _selectedRideType = widget.rideType;
+
+    if (!_rideTypes.contains(_selectedRideType)) {
+      _rideTypes.insert(0, _selectedRideType);
+    }
+    final initialIndex =
+        _rideTypes.indexOf(_selectedRideType).clamp(0, _rideTypes.length - 1);
+    _rideTypePageController ??= PageController(
+      initialPage: initialIndex,
+      viewportFraction: 0.46,
+    );
     
     // Set initial text from widget parameters
     _pickupController.text = widget.pickupLocation ?? '';
@@ -78,6 +89,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
   void dispose() {
     _appTheme.removeListener(_onThemeChanged);
     _mapController?.dispose();
+    _rideTypePageController?.dispose();
     _pickupController.dispose();
     _dropController.dispose();
     _pickupFocusNode.dispose();
@@ -538,7 +550,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
     switch (rideType) {
       case 'Bike':
         return {
-          'image': 'assets/bike1.png',
+          'image': 'assets/All Icons Set-Pikkar_Bike.png',
           'time': '2 Min',
           'passengers': '1',
           'price': '₹65',
@@ -547,7 +559,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         };
       case 'Auto':
         return {
-          'image': 'assets/auto1.png',
+          'image': 'assets/All Icons Set-Pikkar_Auto.png',
           'time': '2 Min',
           'passengers': '3',
           'price': '₹90',
@@ -555,7 +567,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         };
       case 'Cab':
         return {
-          'image': 'assets/car1.png',
+          'image': 'assets/All Icons Set-Pikkar_Cab.png',
           'time': '2 Min',
           'passengers': '4',
           'price': '₹180',
@@ -563,7 +575,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         };
       case 'SUV':
         return {
-          'image': 'assets/car1.png',
+          'image': 'assets/All Icons Set-Pikkar_Parcel Bike.png',
           'time': '2 Min',
           'passengers': '5',
           'price': '₹245',
@@ -571,7 +583,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         };
       default:
         return {
-          'image': 'assets/bike1.png',
+          'image': 'assets/All Icons Set-Pikkar_Parcel Bike.png',
           'time': '2 Min',
           'passengers': '1',
           'price': '₹65',
@@ -582,7 +594,12 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    // Hot-reload safe: when new fields are added, initState doesn't rerun.
+    _rideTypePageController ??= PageController(
+      initialPage: _rideTypes.indexOf(_selectedRideType).clamp(0, _rideTypes.length - 1),
+      viewportFraction: 0.46,
+    );
+
     return Directionality(
       textDirection: _appTheme.textDirection,
       child: Scaffold(
@@ -614,7 +631,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
 
             // Navigation Buttons
             Positioned(
-              top: 260,
+              top: 340,
               left: 16,
               child: Container(
                 decoration: BoxDecoration(
@@ -638,7 +655,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
               ),
             ),
             Positioned(
-              top: 260,
+              top: 340,
               right: 16,
               child: Container(
                 decoration: BoxDecoration(
@@ -670,27 +687,29 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                 ),
               ),
 
-            // Ride Options Panel (always visible)
+            // Ride Options Panel (always visible) - fixed layout, no overflow
             DraggableScrollableSheet(
-                initialChildSize: 0.62,
-                minChildSize: 0.4,
-                maxChildSize: 0.85,
-                builder: (context, scrollController) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
+              initialChildSize: 0.52,
+              minChildSize: 0.12,
+              maxChildSize: 0.52,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    top: false,
                     child: Column(
                       children: [
                         // Drag Handle
@@ -704,121 +723,161 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                           ),
                         ),
 
-                        // Ride Options List
+                        // Scrollable content (carousel)
                         Expanded(
                           child: ListView(
                             controller: scrollController,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                            clipBehavior: Clip.none,
                             children: [
-                              _buildRideOption('Bike'),
-                              const SizedBox(height: 12),
-                              _buildRideOption('Auto'),
-                              const SizedBox(height: 12),
-                              _buildRideOption('Cab'),
-                              const SizedBox(height: 12),
-                              _buildRideOption('SUV'),
-                              const SizedBox(height: 20),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: SizedBox(
+                                  height: 240,
+                                  child: PageView.builder(
+                                  controller: _rideTypePageController,
+                                  itemCount: _rideTypes.length,
+                                  padEnds: true,
+                                  clipBehavior: Clip.none,
+                                  physics: const BouncingScrollPhysics(),
+                                  onPageChanged: (index) {
+                                    setState(() {
+                                      _selectedRideType = _rideTypes[index];
+                                    });
+                                  },
+                                  itemBuilder: (context, index) {
+                                    final rideType = _rideTypes[index];
+                                    return AnimatedBuilder(
+                                      animation: _rideTypePageController!,
+                                      builder: (context, child) {
+                                        final ctrl = _rideTypePageController!;
+                                        final currentPage = ctrl.hasClients
+                                            ? (ctrl.page ?? ctrl.initialPage.toDouble())
+                                            : ctrl.initialPage.toDouble();
 
-                              // Promotional Banner
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Transparent fares and zero hidden charges - only on Pikkar.',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  textAlign: TextAlign.center,
+                                        final distance = (currentPage - index).abs();
+                                        // Slightly smaller highlight to reduce selected card height
+                                        final scale =
+                                            (1.02 - (distance * 0.20)).clamp(0.82, 1.02);
+                                        final opacity =
+                                            (1.0 - (distance * 0.45)).clamp(0.55, 1.0);
+
+                                        return Transform.scale(
+                                          scale: scale,
+                                          child: Opacity(opacity: opacity, child: child),
+                                        );
+                                      },
+                                      child: _buildRideCarouselCard(
+                                        rideType,
+                                        isSelected: _selectedRideType == rideType,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
-
-                              const SizedBox(height: 20),
+                            ),
                             ],
                           ),
                         ),
 
-                        // Payment Method and Book Ride Button in same row
+                        // Promotional Banner (fixed)
                         Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: _appTheme.cardColor,
-                            border: Border(
-                              top: BorderSide(
-                                color: _appTheme.dividerColor,
-                                width: 1,
-                              ),
+                          width: double.infinity,
+                          height: 32,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          color: Colors.green,
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '"Transparent fares and zero hidden charges - only on Pikkar."',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                           ),
+                        ),
+
+                        // Payment + Book Ride (fixed)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          color: Colors.white,
                           child: SafeArea(
+                            top: false,
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Payment Method (Left)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Cash',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: _appTheme.textColor,
-                                      ),
-                                    ),
-                                    Text(
-                                      ' | ',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: _appTheme.textGrey,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Direct pay to Driver',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: _appTheme.textColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // Book Ride Button (Right)
-                                ElevatedButton(
-                                  onPressed: () {
-                                    // Navigate to Finding Driver screen
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => FindingDriverScreen(
-                                          pickupLocation: widget.pickupLocation ?? 'Pickup Location',
-                                          dropLocation: widget.dropLocation ?? 'Drop Location',
-                                          rideType: _selectedRideType,
-                                          pickupLatLng: _pickupLatLng,
-                                          dropLatLng: _dropLatLng,
+                                Expanded(
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        'Cash',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 14,
                                         ),
                                       ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _appTheme.brandRed,
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
+                                      const SizedBox(width: 12),
+                                      Container(
+                                        width: 1,
+                                        height: 26,
+                                        color: Colors.black.withOpacity(0.28),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Flexible(
+                                        child: Text(
+                                          'Direct pay to Driver',
+                                          style: TextStyle(
+                                            color: Colors.black.withOpacity(0.8),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child: Text(
-                                    'Book Ride',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                                ),
+                                const SizedBox(width: 14),
+                                SizedBox(
+                                  height: 40,
+                                  width: 150,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => FindingDriverScreen(
+                                            pickupLocation:
+                                                widget.pickupLocation ?? 'Pickup Location',
+                                            dropLocation:
+                                                widget.dropLocation ?? 'Drop Location',
+                                            rideType: _selectedRideType,
+                                            pickupLatLng: _pickupLatLng,
+                                            dropLatLng: _dropLatLng,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _appTheme.brandRed,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(40),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      'Book Ride',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -828,9 +887,10 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
+            ),
           
           ],
         ),
@@ -838,101 +898,90 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
     );
   }
 
-  Widget _buildRideOption(String rideType) {
+  Widget _buildRideCarouselCard(String rideType, {required bool isSelected}) {
     final details = _getRideDetails(rideType);
-    final isSelected = _selectedRideType == rideType;
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
+        final index = _rideTypes.indexOf(rideType);
+        if (index == -1) return;
+        _rideTypePageController?.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
         setState(() {
           _selectedRideType = rideType;
         });
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 12 : 12,
+          vertical: isSelected ? 10 : 12,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
-                  ),
-                ]
-              : null,
+          border: Border.all(
+            color: Colors.black.withOpacity(0.18),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isSelected ? 0.16 : 0.08),
+              blurRadius: isSelected ? 16 : 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Ride Image/Icon
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: _appTheme.cardColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  details['image'] as String,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      details['icon'] as IconData,
-                      color: _appTheme.brandRed,
-                      size: 32,
-                    );
-                  },
-                ),
+            SizedBox(
+              width: isSelected ? 70 : 64,
+              height: isSelected ? 70 : 64,
+              child: Image.asset(
+                details['image'] as String,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    details['icon'] as IconData,
+                    color: _appTheme.brandRed,
+                    size: isSelected ? 44 : 40,
+                  );
+                },
               ),
             ),
-            const SizedBox(width: 16),
-            // Ride Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    rideType,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _appTheme.textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${details['time']} | ${details['passengers']}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _appTheme.textGrey,
-                    ),
-                  ),
-                  if (details['tagline'] != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      details['tagline'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _appTheme.textGrey,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ],
+            SizedBox(height: isSelected ? 8 : 8),
+            Text(
+              rideType,
+              style: TextStyle(
+                fontSize: isSelected ? 15 : 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black.withOpacity(0.9),
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            // Price
+            const SizedBox(height: 6),
             Text(
               details['price'] as String,
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: _appTheme.brandRed,
+                fontSize: isSelected ? 24 : 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${details['time']} | ${details['passengers']}',
+              style: TextStyle(
+                fontSize: 12,
+                color: _appTheme.textGrey,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

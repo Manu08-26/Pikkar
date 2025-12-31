@@ -42,21 +42,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
           backgroundColor: _appTheme.cardColor,
           elevation: 0,
           automaticallyImplyLeading: false,
-          leading: IconButton(
+          leadingWidth: 56,
+         leading: IconButton(
             icon: Icon(
               _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
               color: _appTheme.textColor,
             ),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const HomeScreen(),
-                ),
-              );
-            },
-          ),
-          title: Text(
+            onPressed: () => Navigator.pop(context),
+          ),title: Text(
             localizations.history,
             style: TextStyle(
               color: _appTheme.textColor,

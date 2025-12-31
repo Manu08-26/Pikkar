@@ -184,9 +184,9 @@ class _CancelRideReasonsScreenState extends State<CancelRideReasonsScreen> {
                                 child: Text(
                                   reason['title']!,
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: _appTheme.textColor,
+                                   fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black,
                                   ),
                                 ),
                               ),

@@ -5,14 +5,19 @@ import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'ride_booking_screen.dart';
+import 'parcel_drop_details_screen.dart';
 import '../../../core/theme/app_theme.dart';
 
 class DropScreen extends StatefulWidget {
   final String rideType; // Bike, Auto, Parcel, Truck
+  /// If true, selecting a drop location will open the Parcel contact/details bottom sheet.
+  /// Use this only for the Parcel delivery flow; keep false for normal "Where to drop" flow.
+  final bool enableParcelDropDetails;
 
   const DropScreen({
     super.key,
     required this.rideType,
+    this.enableParcelDropDetails = false,
   });
 
   @override
@@ -36,6 +41,7 @@ class _DropScreenState extends State<DropScreen> {
   String? _pickupLocationName;
   String? _selectedLocationName;
   String _currentLocationName = "Current Location";
+  String _selectedForMe = "For me";
   static const String _apiKey = 'AIzaSyAT3wIjV73qVXPAlgkyifnns38GztnbNF4';
 
   @override
@@ -108,12 +114,15 @@ class _DropScreenState extends State<DropScreen> {
       );
 
       if (_currentLocation != null && mounted) {
-        setState(() {
-          _pickupLocation = LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
-          _pickupLocationName = _currentLocationName;
-        });
         _updateMapCamera();
-        _getCurrentLocationName();
+        _getCurrentLocationName().then((_) {
+          if (mounted) {
+            setState(() {
+              _pickupLocation = LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
+              _pickupLocationName = _currentLocationName;
+            });
+          }
+        });
       }
     } catch (e) {
       print('Error getting location: $e');
@@ -191,13 +200,38 @@ class _DropScreenState extends State<DropScreen> {
       final data = json.decode(response.body);
 
       if (data['status'] == 'OK' && mounted) {
+        // Calculate distances for drop search results
+        List<Map<String, dynamic>> results = (data['predictions'] as List)
+            .map((prediction) {
+              String fullDescription = prediction['description'];
+              // Extract only the place name (first part before comma)
+              String placeName = fullDescription.split(',').first.trim();
+              return {
+                'description': fullDescription,
+                'place_name': placeName,
+                'place_id': prediction['place_id'],
+                'distance': null, // Will be calculated if needed
+              };
+            })
+            .toList();
+        
+        // Calculate distances for drop results if current location is available
+        if (!isPickup && _currentLocation != null) {
+          for (var result in results) {
+            _calculateDistanceForPlace(result['place_id']).then((distance) {
+              if (mounted) {
+                setState(() {
+                  int index = _dropSearchResults.indexWhere((r) => r['place_id'] == result['place_id']);
+                  if (index != -1) {
+                    _dropSearchResults[index]['distance'] = distance;
+                  }
+                });
+              }
+            });
+          }
+        }
+        
         setState(() {
-          final results = (data['predictions'] as List)
-              .map((prediction) => {
-                    'description': prediction['description'],
-                    'place_id': prediction['place_id'],
-                  })
-              .toList();
           if (isPickup) {
             _pickupSearchResults = results;
             _isSearchingPickup = false;
@@ -226,6 +260,32 @@ class _DropScreenState extends State<DropScreen> {
     }
   }
 
+  Future<double?> _calculateDistanceForPlace(String placeId) async {
+    if (_currentLocation == null) return null;
+    
+    try {
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$_apiKey',
+      );
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'OK') {
+        final location = data['result']['geometry']['location'];
+        double distance = Geolocator.distanceBetween(
+          _currentLocation!.latitude,
+          _currentLocation!.longitude,
+          location['lat'],
+          location['lng'],
+        );
+        return distance / 1000; // Convert to km
+      }
+    } catch (e) {
+      print('Error calculating distance: $e');
+    }
+    return null;
+  }
+
   Future<void> _getPlaceDetails(String placeId, String description, bool isPickup) async {
     try {
       final url = Uri.parse(
@@ -251,6 +311,14 @@ class _DropScreenState extends State<DropScreen> {
             _dropSearchController.text = description;
             _dropSearchResults = [];
             _showDropSearch = false;
+            
+            // For Parcel/Delivery, show contact details popup
+            if (widget.enableParcelDropDetails &&
+                (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+              Future.delayed(const Duration(milliseconds: 300), () {
+                _showParcelDropDetailsPopup();
+              });
+            }
           }
         });
 
@@ -291,8 +359,31 @@ class _DropScreenState extends State<DropScreen> {
               _selectedLocation = latLng;
               _selectedLocationName = name;
             });
+            
+            // For Parcel/Delivery, show contact details popup
+            if (widget.enableParcelDropDetails &&
+                (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+              Future.delayed(const Duration(milliseconds: 300), () {
+                _showParcelDropDetailsPopup();
+              });
+            }
           },
         ),
+      ),
+    );
+  }
+
+  void _showParcelDropDetailsPopup() {
+    if (_selectedLocationName == null) return;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ParcelDropDetailsScreen(
+        serviceType: widget.rideType,
+        pickupLocation: _pickupLocationName ?? _currentLocationName,
+        dropLocation: _selectedLocationName ?? '',
       ),
     );
   }
@@ -344,44 +435,13 @@ class _DropScreenState extends State<DropScreen> {
             ),
           ),
           centerTitle: false,
-          actions: [
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: _appTheme.textGrey.withOpacity(0.3),
-                  width: 1,
-                ),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: TextButton.icon(
-                onPressed: _selectDropOnMap,
-                icon: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _appTheme.brandRed,
-                  ),
-                ),
-                label: Text(
-                  'Select on map',
-                  style: TextStyle(
-                    color: _appTheme.textColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
         body: SingleChildScrollView(
           child: Column(
             children: [
               const SizedBox(height: 16),
 
-              // Pickup and Drop Search Results Card
+              // Location Input Card
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -393,122 +453,377 @@ class _DropScreenState extends State<DropScreen> {
                       width: 1,
                     ),
                   ),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Pickup Search Bar
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _appTheme.iconBgColor,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: TextField(
-                          controller: _pickupSearchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search for pickup location',
-                            hintStyle: TextStyle(color: _appTheme.textGrey),
-                            prefixIcon: Icon(Icons.location_on, color: _appTheme.brandRed, size: 20),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
+                      // Pickup Location
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showPickupSearch = true;
+                            _showDropSearch = false;
+                          });
+                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Green icon for pickup
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.circle,
+                                  color: Colors.white,
+                                  size: 8,
+                                ),
+                              ),
                             ),
-                          ),
-                          style: TextStyle(color: _appTheme.textColor),
-                          onTap: () {
-                            setState(() {
-                              _showPickupSearch = true;
-                              _showDropSearch = false;
-                            });
-                          },
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _pickupLocationName ?? _currentLocationName,
+                                    style: TextStyle(
+                                      color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      // Pickup Search Results (top)
+                      
+                      // Pickup Search Results (shown below the card)
                       if (_showPickupSearch && _pickupSearchResults.isNotEmpty)
-                        ..._pickupSearchResults.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final result = entry.value;
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _suggestedLocationItem(
-                                result['description'],
-                                isSelected: false,
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _appTheme.dividerColor,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: _pickupSearchResults.map((result) {
+                              return InkWell(
                                 onTap: () => _getPlaceDetails(
                                   result['place_id'],
                                   result['description'],
                                   true,
                                 ),
-                              ),
-                              if (index < _pickupSearchResults.length - 1 || (_showDropSearch && _dropSearchResults.isNotEmpty))
-                                Divider(height: 1, color: _appTheme.dividerColor),
-                            ],
-                          );
-                        }).toList(),
-                      // Divider between pickup and drop if both have results
-                      if (_showPickupSearch && _pickupSearchResults.isNotEmpty && _showDropSearch && _dropSearchResults.isNotEmpty)
-                        Divider(height: 1, color: _appTheme.dividerColor),
-                      // Drop Search Bar
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _appTheme.iconBgColor,
-                          borderRadius: _showPickupSearch && _pickupSearchResults.isNotEmpty
-                              ? BorderRadius.zero
-                              : const BorderRadius.only(
-                                  bottomLeft: Radius.circular(12),
-                                  bottomRight: Radius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on,
+                                        color: _appTheme.brandRed,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          result['place_name'] ?? result['description'],
+                                          style: TextStyle(
+                                           color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                        ),
-                        child: TextField(
-                          controller: _dropSearchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search for drop location',
-                            hintStyle: TextStyle(color: _appTheme.textGrey),
-                            prefixIcon: Icon(Icons.location_on, color: Colors.green, size: 20),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
+                              );
+                            }).toList(),
                           ),
-                          style: TextStyle(color: _appTheme.textColor),
-                          onTap: () {
-                            setState(() {
-                              _showDropSearch = true;
-                              _showPickupSearch = false;
-                            });
-                          },
+                        ),
+                      
+                      // Dashed line connecting pickup to drop
+                      Padding(
+                        padding: const EdgeInsets.only(left: 11),
+                        child: Column(
+                          children: List.generate(4, (index) {
+                            return Container(
+                              margin: const EdgeInsets.only(top: 2),
+                              width: 2,
+                              height: 4,
+                              color: _appTheme.textGrey.withOpacity(0.5),
+                            );
+                          }),
                         ),
                       ),
-                      // Drop Search Results (bottom)
-                      if (_showDropSearch && _dropSearchResults.isNotEmpty)
-                        ..._dropSearchResults.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final result = entry.value;
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _suggestedLocationItem(
-                                result['description'],
-                                isSelected: false,
-                                onTap: () => _getPlaceDetails(
-                                  result['place_id'],
-                                  result['description'],
-                                  false,
-                                ),
+                      
+                      // Drop Location
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Red icon for drop with white dot
+                          Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: _appTheme.brandRed,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.circle,
+                                color: Colors.white,
+                                size: 8,
                               ),
-                              if (index < _dropSearchResults.length - 1)
-                                Divider(height: 1, color: _appTheme.dividerColor),
-                            ],
-                          );
-                        }).toList(),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _dropSearchController,
+                              decoration: InputDecoration(
+                                hintText: 'Drop location',
+                                hintStyle: TextStyle(color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                isDense: true,
+                              ),
+                              style: TextStyle(
+                                color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _showDropSearch = true;
+                                  _showPickupSearch = false;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              // Action Buttons (at top, before suggestions)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _selectDropOnMap,
+                        icon: Icon(
+                          Icons.location_on,
+                          color: _appTheme.brandRed,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Select on map',
+                          style: TextStyle(
+                           color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          side: BorderSide(
+                            color: _appTheme.textGrey.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          // Add stops functionality
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Add stops feature coming soon'),
+                              backgroundColor: _appTheme.brandRed,
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.add,
+                          color: _appTheme.textColor,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Add stops',
+                          style: TextStyle(
+                           color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          side: BorderSide(
+                            color: _appTheme.textGrey.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Drop Search Results (shown after buttons)
+              if (_showDropSearch && _dropSearchResults.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _appTheme.dividerColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: _dropSearchResults.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final result = entry.value;
+                        return Column(
+                          children: [
+                            InkWell(
+                              onTap: () => _getPlaceDetails(
+                                result['place_id'],
+                                result['description'],
+                                false,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Circ
+                                    //le icon (red with white center) - centered vertically
+                                    Padding(padding: const EdgeInsets.only(top: 6), child: 
+                                     Align(
+                                      alignment: Alignment.center,
+                                      child: Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: _appTheme.brandRed,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.circle,
+                                            color: Colors.white,
+                                            size: 8,
+                                          ),
+                                        ),
+                                      ),
+                                    ),),
+                                   
+                                    const SizedBox(width: 12),
+                                    // Location details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Place name (bold)
+                                          Text(
+                                            result['place_name'] ?? result['description'],
+                                            style: TextStyle(
+                                              fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Distance
+                                          if (result['distance'] != null)
+                                            Text(
+                                              '${result['distance'].toStringAsFixed(1)} km',
+                                              style: TextStyle(
+                                                color: _appTheme.textGrey,
+                                                fontSize: 13,
+                                              ),
+                                            )
+                                          else
+                                            const SizedBox(height: 16),
+                                          const SizedBox(height: 2),
+                                          // Full address
+                                          Text(
+                                            result['description'],
+                                            style: TextStyle(
+                                              color: _appTheme.textGrey,
+                                              fontSize: 12,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Heart icon
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.favorite_border,
+                                        color: _appTheme.textGrey,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        // Toggle favorite
+                                      },
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // Divider (except for last item)
+                            if (index < _dropSearchResults.length - 1)
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: Colors.grey.shade300,
+                                indent: 0,
+                                endIndent: 0,
+                              ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 16),
 
@@ -528,6 +843,13 @@ class _DropScreenState extends State<DropScreen> {
                             _selectedLocationName =
                                 'Lulu Mall, Kondapur, Hyderabad, Telangana';
                           });
+                          // For Parcel/Delivery, show contact details popup
+                          if (widget.enableParcelDropDetails &&
+                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              _showParcelDropDetailsPopup();
+                            });
+                          }
                         },
                       ),
                       _recentLocationItem(
@@ -539,6 +861,13 @@ class _DropScreenState extends State<DropScreen> {
                             _selectedLocationName =
                                 'Hotel Grand Sitara, Banjara Hills, Hyderabad, Telangana';
                           });
+                          // For Parcel/Delivery, show contact details popup
+                          if (widget.enableParcelDropDetails &&
+                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              _showParcelDropDetailsPopup();
+                            });
+                          }
                         },
                       ),
                       _recentLocationItem(
@@ -549,6 +878,13 @@ class _DropScreenState extends State<DropScreen> {
                           setState(() {
                             _selectedLocationName = 'GVK Mall, Banjara Hills, Hyderabad';
                           });
+                          // For Parcel/Delivery, show contact details popup
+                          if (widget.enableParcelDropDetails &&
+                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              _showParcelDropDetailsPopup();
+                            });
+                          }
                         },
                       ),
                       _recentLocationItem(
@@ -560,6 +896,13 @@ class _DropScreenState extends State<DropScreen> {
                             _selectedLocationName =
                                 'Metro Convention Classic, Hyderabad';
                           });
+                          // For Parcel/Delivery, show contact details popup
+                          if (widget.enableParcelDropDetails &&
+                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              _showParcelDropDetailsPopup();
+                            });
+                          }
                         },
                       ),
                     ],
@@ -686,9 +1029,9 @@ class _DropScreenState extends State<DropScreen> {
                   Text(
                     name,
                     style: TextStyle(
-                      color: _appTheme.textColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                     fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -717,6 +1060,36 @@ class _DropScreenState extends State<DropScreen> {
       ),
     );
   }
+}
+
+// Dashed Line Painter
+class DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+
+    const dashWidth = 4.0;
+    const dashSpace = 2.0;
+    double startX = 0;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, 0),
+        Offset(startX + dashWidth, 0),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 // Map Location Screen for selecting location on map

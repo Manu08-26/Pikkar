@@ -319,28 +319,29 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                             _buildRideOptionCard(widget.rideType),
                             const SizedBox(height: 16),
 
-                            // Promotional Banner
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Transparent fares and zero hidden charges - only on Pikkar.',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-
+                         
                             const SizedBox(height: 20),
                           ],
                         ),
                       ),
+                       Container(
+                          width: double.infinity,
+                          height: 32,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          color: Colors.green,
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '"Transparent fares and zero hidden charges - only on Pikkar."',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
 
                       // Payment Method and Cancel Ride Button in same row
                       Container(
@@ -365,26 +366,27 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                                 children: [
                                   Text(
                                     'Cash',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: _appTheme.textColor,
-                                    ),
+                                     style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 14,
+                                        ),
                                   ),
                                   Text(
                                     ' | ',
                                     style: TextStyle(
-                                      fontSize: 14,
-                                      color: _appTheme.textGrey,
-                                    ),
+                                            color: Colors.black.withOpacity(0.8),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
                                   ),
                                   Text(
                                     'Direct pay to Driver',
                                     style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: _appTheme.textColor,
-                                    ),
+                                            color: Colors.black.withOpacity(0.8),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
                                   ),
                                 ],
                               ),
