@@ -537,12 +537,13 @@ Widget build(BuildContext context) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
+           
             /// HEADER - QUOTES CAROUSEL
             Container(
               color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 25),
               child: Column(
+                
                 children: [
                   SizedBox(
                     height: 100,
@@ -669,82 +670,86 @@ Widget build(BuildContext context) {
                   ),
                   const SizedBox(height: 16),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _rideOption('Parcel', 'assets/All Icons Set-Pikkar_Parcel Bike.png', () {
-                        print('🔵 Parcel tapped!');
-                        try {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) {
-                                print('🔵 Building ParcelDeliveryScreen');
-                                return const ParcelDeliveryScreen(
-                                  serviceType: 'Parcel',
-                                );
-                              },
-                            ),
-                          ).then((_) {
-                            print('🔵 Navigation completed');
-                        setState(() {
-                              _selectedDeliveryService = null;
-                            });
-                          }).catchError((error) {
-                            print('❌ Navigation error: $error');
-                        });
-                        } catch (e, stackTrace) {
-                          print('❌ Error navigating: $e');
-                          print('Stack trace: $stackTrace');
-                        }
-                      }, isSelected: _selectedDeliveryService == 'Parcel'),
-                      const SizedBox(width: 20),
-                      _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ParcelDeliveryScreen(
-                              serviceType: 'Delivery',
-                            ),
-                          ),
-                        ).then((_) {
-                        setState(() {
-                            _selectedDeliveryService = null;
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        
+                        _rideOption('Parcel', 'assets/All Icons Set-Pikkar_Parcel Bike.png', () {
+                          print('🔵 Parcel tapped!');
+                          try {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) {
+                                  print('🔵 Building ParcelDeliveryScreen');
+                                  return const ParcelDeliveryScreen(
+                                    serviceType: 'Parcel',
+                                  );
+                                },
+                              ),
+                            ).then((_) {
+                              print('🔵 Navigation completed');
+                          setState(() {
+                                _selectedDeliveryService = null;
+                              });
+                            }).catchError((error) {
+                              print('❌ Navigation error: $error');
                           });
-                        });
-                      }, isSelected: _selectedDeliveryService == 'Delivery'),
-                      const SizedBox(width: 20),
-                      InkWell(
-                        onTap: () {
+                          } catch (e, stackTrace) {
+                            print('❌ Error navigating: $e');
+                            print('Stack trace: $stackTrace');
+                          }
+                        }, isSelected: _selectedDeliveryService == 'Parcel'),
+                        const SizedBox(width: 20),
+                        _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const ServicesScreen(),
-                            ),
-                          );
-                        },
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              alignment: Alignment.center,
-                              
-                              child: const Text(
-                                'See all',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue,
-                                ),
+                              builder: (_) => const ParcelDeliveryScreen(
+                                serviceType: 'Delivery',
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const SizedBox(height: 20), // Spacing to align with other options
-                          ],
+                          ).then((_) {
+                          setState(() {
+                              _selectedDeliveryService = null;
+                            });
+                          });
+                        }, isSelected: _selectedDeliveryService == 'Delivery'),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ServicesScreen(),
+                              ),
+                            );
+                          },
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 100,
+                                height: 100,
+                                alignment: Alignment.center,
+                                
+                                child: const Text(
+                                  'See all',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const SizedBox(height: 20), // Spacing to align with other options
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 20),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 24),

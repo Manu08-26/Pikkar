@@ -552,22 +552,7 @@ class _DropScreenState extends State<DropScreen> {
                             }).toList(),
                           ),
                         ),
-                      
-                      // Dashed line connecting pickup to drop
-                      Padding(
-                        padding: const EdgeInsets.only(left: 11),
-                        child: Column(
-                          children: List.generate(4, (index) {
-                            return Container(
-                              margin: const EdgeInsets.only(top: 2),
-                              width: 2,
-                              height: 4,
-                              color: _appTheme.textGrey.withOpacity(0.5),
-                            );
-                          }),
-                        ),
-                      ),
-                      
+                      const SizedBox(height: 16),
                       // Drop Location
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
