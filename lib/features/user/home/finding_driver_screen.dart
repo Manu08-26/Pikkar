@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'cancel_ride_reasons_screen.dart';
+import 'driver_details_screen.dart';
 import '../../../core/theme/app_theme.dart';
 
 class FindingDriverScreen extends StatefulWidget {
@@ -28,26 +30,20 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
   GoogleMapController? _mapController;
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
-  bool _isFindingDriver = true;
-  double _progressValue = 0.0;
+  Timer? _findingTimer;
 
   @override
   void initState() {
     super.initState();
-    _appTheme.addListener(_onThemeChanged);
     _initializeMap();
     _startFindingDriver();
   }
 
   @override
   void dispose() {
-    _appTheme.removeListener(_onThemeChanged);
+    _findingTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
-  }
-
-  void _onThemeChanged() {
-    setState(() {});
   }
 
   void _initializeMap() {
@@ -123,18 +119,39 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
   }
 
   void _startFindingDriver() {
-    // Simulate finding driver progress
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted && _isFindingDriver) {
-        setState(() {
-          _progressValue += 0.02;
-          if (_progressValue >= 1.0) {
-            _progressValue = 0.0;
-          }
-        });
-        _startFindingDriver();
+    // Simulate finding driver - automatically navigate after 5 seconds
+    _findingTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        _navigateToDriverDetails();
       }
     });
+  }
+  
+  void _navigateToDriverDetails() {
+    // Mock ride details
+    final rideDetails = {
+      'vehicleNumber': 'TS02E1655',
+      'vehicleModel': 'Hero Honda',
+      'driverName': 'Sri Akshay',
+      'driverRating': '4.9',
+      'price': '₹120',
+      'distance': '5.2 km',
+      'duration': '15 mins',
+    };
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DriverDetailsScreen(
+          pickupLocation: widget.pickupLocation,
+          dropLocation: widget.dropLocation,
+          rideType: widget.rideType,
+          pickupLatLng: widget.pickupLatLng,
+          dropLatLng: widget.dropLatLng,
+          rideDetails: rideDetails,
+        ),
+      ),
+    );
   }
 
   void _handleCancelRide() async {
@@ -168,40 +185,6 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
       textDirection: _appTheme.textDirection,
       child: Scaffold(
         backgroundColor: _appTheme.backgroundColor,
-        appBar: AppBar(
-          backgroundColor: _appTheme.cardColor,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
-              color: _appTheme.textColor,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.pickupLocation,
-                style: TextStyle(
-                  color: _appTheme.textGrey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                widget.dropLocation,
-                style: TextStyle(
-                  color: _appTheme.textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
         body: SizedBox.expand(
           child: Stack(
             children: [
@@ -233,15 +216,67 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
               zoomGesturesEnabled: true,
             ),
 
-            // Finding Driver Bottom Sheet
-            DraggableScrollableSheet(
-              initialChildSize: 0.5,
-              minChildSize: 0.3,
-              maxChildSize: 0.85,
-              builder: (context, scrollController) {
-                return Container(
+            // Back button overlay
+            Positioned(
+              top: 340,
+              left: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
+                    color: Colors.black,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+
+            // Location button overlay
+            Positioned(
+              top: 340,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.my_location, color: Colors.black),
+                  onPressed: () {
+                    // Re-zoom to fit both markers
+                    _zoomToFitMarkers();
+                  },
+                ),
+              ),
+            ),
+
+            // Fixed Bottom Sheet (not draggable)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.48,
                   decoration: BoxDecoration(
-                    color: _appTheme.cardColor,
+                  color: Colors.grey.shade100,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
@@ -256,7 +291,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Drag Handle
+                    // Drag Handle (visual only)
                       Container(
                         margin: const EdgeInsets.symmetric(vertical: 12),
                         width: 40,
@@ -267,7 +302,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                         ),
                       ),
 
-                      // Finding Driver Header
+                    // Finding Driver Header with animated dots
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
@@ -280,7 +315,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                                 color: _appTheme.textColor,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                             Text(
                               'We are finding the nearest ${widget.rideType} for you',
                               style: TextStyle(
@@ -289,59 +324,56 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                               ),
                               textAlign: TextAlign.center,
                             ),
+                          const SizedBox(height: 12),
+                          // Static loading indicator
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                         
                           ],
                         ),
                       ),
 
                       const SizedBox(height: 24),
 
-                      // Progress Indicator
-                      Padding(
+                    // Ride Details (fixed content, no scroll)
+                    Expanded(
+                      child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: LinearProgressIndicator(
-                          value: _progressValue,
-                          backgroundColor: _appTheme.iconBgColor,
-                          valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
-                          minHeight: 4,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Ride Details
-                      Expanded(
-                        child: ListView(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
                           children: [
                             // Ride Options (Read-only)
                             _buildRideOptionCard(widget.rideType),
                             const SizedBox(height: 16),
-
-                         
-                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
-                       Container(
-                          width: double.infinity,
-                          height: 32,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          color: Colors.green,
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '"Transparent fares and zero hidden charges - only on Pikkar."',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
+                    ),
+                    
+                    Container(
+                      width: double.infinity,
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                color: Colors.green,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        '"Transparent fares and zero hidden charges - only on Pikkar."',
+                        style: TextStyle(
+                                  color: Colors.white,
+                          fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
                         ),
+                      ),
 
                       // Payment Method and Cancel Ride Button in same row
                       Container(
@@ -356,6 +388,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                           ),
                         ),
                         child: SafeArea(
+                        top: false,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -364,29 +397,29 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
+                                const Text(
                                     'Cash',
-                                     style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 14,
-                                        ),
+                                    style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w400,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                   Text(
                                     ' | ',
                                     style: TextStyle(
-                                            color: Colors.black.withOpacity(0.8),
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 13,
-                                          ),
+                                    color: Colors.black.withOpacity(0.8),
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    ),
                                   ),
-                                  Text(
-                                    'Direct pay to Driver',
+                                const Text(
+                                  'Pay to Driver',
                                     style: TextStyle(
-                                            color: Colors.black.withOpacity(0.8),
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 13,
-                                          ),
+                                    color: Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -395,11 +428,12 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                                 onPressed: _handleCancelRide,
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(color: _appTheme.brandRed, width: 2),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                   backgroundColor: Colors.white,
+                                minimumSize: const Size(0, 50),
                                 ),
                                 child: Text(
                                   'Cancel Ride',
@@ -416,8 +450,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                       ),
                     ],
                   ),
-                );
-              },
+              ),
             ),
           ],
         ),
@@ -499,7 +532,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: _appTheme.brandRed,
+              color: _appTheme.black,
             ),
           ),
         ],

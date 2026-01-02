@@ -551,8 +551,8 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       case 'Bike':
         return {
           'image': 'assets/All Icons Set-Pikkar_Bike.png',
-          'time': '2 Min',
-         
+          'time': '2 min',
+          'passengers': '1 seat',
           'price': '₹65',
           'icon': Icons.two_wheeler,
           'tagline': 'Ride Easy. Book Fast.',
@@ -560,32 +560,32 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       case 'Auto':
         return {
           'image': 'assets/All Icons Set-Pikkar_Auto.png',
-          'time': '2 Min',
-         
+          'time': '2 min',
+          'passengers': '3 seats',
           'price': '₹90',
           'icon': Icons.airport_shuttle,
         };
       case 'Cab':
         return {
           'image': 'assets/All Icons Set-Pikkar_Cab.png',
-          'time': '2 Min',
-         
+          'time': '2 min',
+          'passengers': '4 seats',
           'price': '₹180',
           'icon': Icons.directions_car,
         };
       case 'SUV':
         return {
           'image': 'assets/All Icons Set-Pikkar_Parcel Bike.png',
-          'time': '2 Min',
-        
+          'time': '2 min',
+          'passengers': '5 seats',
           'price': '₹245',
           'icon': Icons.directions_car,
         };
       default:
         return {
-          'image': 'assets/All Icons Set-Pikkar_Parcel Bike.png',
-          'time': '2 Min',
-         
+          'image': 'assets/All Icons Set-Pikkar_Bike.png',
+          'time': '2 min',
+          'passengers': '1 seat',
           'price': '₹65',
           'icon': Icons.two_wheeler,
         };
@@ -696,7 +696,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.48,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.grey.shade100,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
@@ -729,50 +729,12 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
                           child: Column(
-                            children: [
-                              SizedBox(
-                                height: MediaQuery.of(context).size.height * 0.22,
-                                child: PageView.builder(
-                                  controller: _rideTypePageController,
-                                  itemCount: _rideTypes.length,
-                                  padEnds: true,
-                                  clipBehavior: Clip.none,
-                                  physics: const BouncingScrollPhysics(),
-                                  onPageChanged: (index) {
-                                    setState(() {
-                                      _selectedRideType = _rideTypes[index];
-                                    });
-                                  },
-                                  itemBuilder: (context, index) {
-                                    final rideType = _rideTypes[index];
-                                    return AnimatedBuilder(
-                                      animation: _rideTypePageController!,
-                                      builder: (context, child) {
-                                        final ctrl = _rideTypePageController!;
-                                        final currentPage = ctrl.hasClients
-                                            ? (ctrl.page ?? ctrl.initialPage.toDouble())
-                                            : ctrl.initialPage.toDouble();
-
-                                        final distance = (currentPage - index).abs();
-                                        final scale =
-                                            (1.02 - (distance * 0.20)).clamp(0.82, 1.02);
-                                        final opacity =
-                                            (1.0 - (distance * 0.45)).clamp(0.55, 1.0);
-
-                                        return Transform.scale(
-                                          scale: scale,
-                                          child: Opacity(opacity: opacity, child: child),
-                                        );
-                                      },
-                                      child: _buildRideCarouselCard(
-                                        rideType,
-                                        isSelected: _selectedRideType == rideType,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                            children: _rideTypes.map((rideType) {
+                              return _buildRideListCard(
+                                rideType,
+                                isSelected: _selectedRideType == rideType,
+                              );
+                            }).toList(),
                           ),
                         ),
                       ),
@@ -826,7 +788,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                                     const SizedBox(width: 12),
                                     Flexible(
                                       child: Text(
-                                        'Direct pay to Driver',
+                                        'Pay to Driver',
                                         style: TextStyle(
                                           color: Colors.black.withOpacity(0.8),
                                           fontWeight: FontWeight.w500,
@@ -841,7 +803,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                               ),
                               const SizedBox(width: 14),
                               SizedBox(
-                                height: 40,
+                                height: 60,
                                 width: 150,
                                 child: ElevatedButton(
                                   onPressed: () {
@@ -997,4 +959,113 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       ),
     );
   }
+
+  Widget _buildRideListCard(String rideType, {required bool isSelected}) {
+    final details = _getRideDetails(rideType);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedRideType = rideType;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        margin: EdgeInsets.only(
+          bottom: isSelected ? 10 : 8,
+          left: isSelected ? 0 : 4,
+          right: isSelected ? 0 : 4,
+        ),
+        padding: EdgeInsets.all(isSelected ? 14 : 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: isSelected
+              ? Border.all(color: _appTheme.brandRed, width: 1)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isSelected ? 0.1 : 0.05),
+              blurRadius: isSelected ? 10 : 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Red bar indicator on the left (only for selected)
+            if (isSelected)
+              Container(
+                width: 4,
+                height: 36,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: _appTheme.brandRed,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            
+            // Vehicle Image
+            Container(
+              width: isSelected ? 64 : 56,
+              height: isSelected ? 64 : 56,
+              padding: const EdgeInsets.all(6),
+              child: Image.asset(
+                details['image'] as String,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    details['icon'] as IconData,
+                    color: _appTheme.brandRed,
+                    size: isSelected ? 36 : 32,
+                  );
+                },
+              ),
+            ),
+            
+            SizedBox(width: isSelected ? 14 : 12),
+            
+            // Vehicle Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    rideType,
+                    style: TextStyle(
+                      fontSize: isSelected ? 17 : 16,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${details['time']} · ${details['passengers'] ?? '1 seat'}',
+                    style: TextStyle(
+                      fontSize: isSelected ? 13 : 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Price
+            Text(
+              details['price'] as String,
+              style: TextStyle(
+                fontSize: isSelected ? 22 : 20,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }
