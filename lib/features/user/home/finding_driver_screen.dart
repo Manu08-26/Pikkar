@@ -190,83 +190,33 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
             children: [
               // Map View
               GoogleMap(
-              onMapCreated: (controller) {
-                _mapController = controller;
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  _zoomToFitMarkers();
-                });
-              },
-              initialCameraPosition: CameraPosition(
-                target: widget.pickupLatLng ?? const LatLng(17.4175, 78.4934),
-                zoom: 14.0,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  if (widget.pickupLatLng != null) {
+                    _mapController?.animateCamera(
+                      CameraUpdate.newLatLngZoom(widget.pickupLatLng!, 14.0),
+                    );
+                  }
+                },
+                initialCameraPosition: CameraPosition(
+                  target: widget.pickupLatLng ?? const LatLng(17.4175, 78.4934),
+                  zoom: 14.0,
+                ),
+                markers: const {},
+                polylines: const {},
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+                mapType: MapType.normal,
+                zoomControlsEnabled: false,
+                compassEnabled: true,
+                buildingsEnabled: true,
+                trafficEnabled: false,
+                mapToolbarEnabled: false,
+                rotateGesturesEnabled: true,
+                scrollGesturesEnabled: true,
+                tiltGesturesEnabled: true,
+                zoomGesturesEnabled: true,
               ),
-              markers: _markers,
-              polylines: _polylines,
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              mapType: MapType.normal,
-              zoomControlsEnabled: false,
-              compassEnabled: true,
-              buildingsEnabled: true,
-              trafficEnabled: false,
-              mapToolbarEnabled: false,
-              rotateGesturesEnabled: true,
-              scrollGesturesEnabled: true,
-              tiltGesturesEnabled: true,
-              zoomGesturesEnabled: true,
-            ),
-
-            // Back button overlay
-            Positioned(
-              top: 340,
-              left: 16,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    _appTheme.rtlEnabled ? Icons.arrow_forward : Icons.arrow_back,
-                    color: Colors.black,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-            ),
-
-            // Location button overlay
-            Positioned(
-              top: 340,
-              right: 16,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.my_location, color: Colors.black),
-                  onPressed: () {
-                    // Re-zoom to fit both markers
-                    _zoomToFitMarkers();
-                  },
-                ),
-              ),
-            ),
 
             // Fixed Bottom Sheet (not draggable)
             Positioned(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'ride_completed_screen.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/responsive.dart';
 
 class RideInProgressScreen extends StatefulWidget {
   final String pickupLocation;
@@ -29,8 +30,8 @@ class RideInProgressScreen extends StatefulWidget {
 class _RideInProgressScreenState extends State<RideInProgressScreen> {
   final AppTheme _appTheme = AppTheme();
   GoogleMapController? _mapController;
-  final Set<Polyline> _polylines = {};
-  final Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+  Set<Marker> _markers = {};
   final int _remainingMinutes = 15;
   final double _remainingKm = 5.2;
   Timer? _progressTimer;
@@ -44,7 +45,7 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
 
   void _startRideProgress() {
     // Navigate to ride completed after 5 seconds for faster testing
-    _progressTimer = Timer(const Duration(seconds: 15), () {
+    _progressTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) {
         _navigateToRideCompleted();
       }
@@ -71,30 +72,66 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
     
     final pickup = widget.pickupLatLng ?? const LatLng(17.385044, 78.486671);
     final drop = widget.dropLatLng ?? const LatLng(17.440181, 78.348457);
-
-    // Add markers
-    _markers.addAll({
-      Marker(
-        markerId: const MarkerId('drop'),
-        position: drop,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: InfoWindow(title: 'Destination', snippet: widget.dropLocation),
-      ),
-    });
-
-    // Add route polyline
-    _polylines.add(
-      Polyline(
-        polylineId: const PolylineId('route'),
-        points: [pickup, drop],
-        color: _appTheme.brandRed,
-        width: 4,
-      ),
+    
+    // Driver location (slightly ahead of pickup for demo)
+    final driverLocation = LatLng(
+      pickup.latitude + 0.005,
+      pickup.longitude + 0.005,
     );
 
-    // Center on destination
+    // Add markers
+    setState(() {
+      _markers = {
+        // Pickup location marker
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: pickup,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: InfoWindow(
+            title: 'Pickup Location',
+            snippet: widget.pickupLocation,
+          ),
+        ),
+        // Driver live location marker
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: driverLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: InfoWindow(
+            title: 'Driver Location',
+            snippet: 'Your driver is here',
+          ),
+        ),
+        // Drop location marker
+        Marker(
+          markerId: const MarkerId('drop'),
+          position: drop,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: 'Destination',
+            snippet: widget.dropLocation,
+          ),
+        ),
+      };
+    });
+
+    // Add route polyline from driver to drop
+    setState(() {
+      _polylines = {
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: [driverLocation, drop],
+          color: _appTheme.brandRed,
+          width: 4,
+        ),
+      };
+    });
+
+    // Center on driver location
     if (_mapController != null) {
-      await _mapController!.animateCamera(CameraUpdate.newLatLngZoom(drop, 14));
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(driverLocation, 14),
+      );
     }
   }
 
@@ -110,12 +147,21 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Call Driver'),
-        content: Text('Calling $phoneNumber...'),
+        title: Text(
+          'Call Driver',
+          style: TextStyle(fontSize: Responsive.fontSize(context, 18)),
+        ),
+        content: Text(
+          'Calling $phoneNumber...',
+          style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+            ),
           ),
         ],
       ),
@@ -127,12 +173,21 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Send Message'),
-        content: Text('Opening messages to $phoneNumber...'),
+        title: Text(
+          'Send Message',
+          style: TextStyle(fontSize: Responsive.fontSize(context, 18)),
+        ),
+        content: Text(
+          'Opening messages to $phoneNumber...',
+          style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+            ),
           ),
         ],
       ),
@@ -141,6 +196,9 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = Responsive.height(context);
+    final buttonTop = screenHeight * 0.68;
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -164,13 +222,17 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
 
           // Back button
           Positioned(
-            top: 550,
-            left: 16,
+            top: buttonTop,
+            left: Responsive.padding(context, 16),
             child: CircleAvatar(
               backgroundColor: Colors.white,
-              radius: 20,
+              radius: Responsive.spacing(context, 20),
               child: IconButton(
-                icon: Icon(Icons.arrow_back, color: _appTheme.textColor, size: 20),
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: _appTheme.textColor,
+                  size: Responsive.iconSize(context, 20),
+                ),
                 onPressed: () => Navigator.pop(context),
                 padding: EdgeInsets.zero,
               ),
@@ -179,13 +241,17 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
 
           // Re-center map button
           Positioned(
-            top: 550,
-            right: 16,
+            top: buttonTop,
+            right: Responsive.padding(context, 16),
             child: CircleAvatar(
               backgroundColor: Colors.white,
-              radius: 20,
+              radius: Responsive.spacing(context, 20),
               child: IconButton(
-                icon: Icon(Icons.my_location, color: _appTheme.textColor, size: 20),
+                icon: Icon(
+                  Icons.my_location,
+                  color: _appTheme.textColor,
+                  size: Responsive.iconSize(context, 20),
+                ),
                 onPressed: () {
                   if (_mapController != null && widget.dropLatLng != null) {
                     _mapController!.animateCamera(
@@ -200,11 +266,11 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
 
           // ETA Card
           Positioned(
-            top: 110,
-            left: 16,
-            right: 16,
+            top: Responsive.hp(context, 13.5),
+            left: Responsive.padding(context, 16),
+            right: Responsive.padding(context, 16),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(Responsive.padding(context, 16)),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -219,87 +285,100 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Column(
-                    children: [
-                      Text(
-                        '$_remainingMinutes mins',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: _appTheme.black,
+                  Flexible(
+                    child: Column(
+                      children: [
+                        Text(
+                          '$_remainingMinutes mins',
+                          style: TextStyle(
+                            fontSize: Responsive.fontSize(context, 20),
+                            fontWeight: FontWeight.bold,
+                            color: _appTheme.black,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                      Text(
-                        'ETA',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _appTheme.textGrey,
+                        SizedBox(height: Responsive.spacing(context, 4)),
+                        Text(
+                          'ETA',
+                          style: TextStyle(
+                            fontSize: Responsive.fontSize(context, 12),
+                            color: _appTheme.textGrey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Container(
                     width: 1,
-                    height: 40,
+                    height: Responsive.spacing(context, 40),
                     color: Colors.grey.shade300,
                   ),
-                  Column(
-                    children: [
-                      Text(
-                        '${_remainingKm.toStringAsFixed(1)} km',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: _appTheme.textColor,
+                  Flexible(
+                    child: Column(
+                      children: [
+                        Text(
+                          '${_remainingKm.toStringAsFixed(1)} km',
+                          style: TextStyle(
+                            fontSize: Responsive.fontSize(context, 20),
+                            fontWeight: FontWeight.bold,
+                            color: _appTheme.textColor,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                      Text(
-                        'Distance',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _appTheme.textGrey,
+                        SizedBox(height: Responsive.spacing(context, 4)),
+                        Text(
+                          'Distance',
+                          style: TextStyle(
+                            fontSize: Responsive.fontSize(context, 12),
+                            color: _appTheme.textGrey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Container(
                     width: 1,
-                    height: 40,
+                    height: Responsive.spacing(context, 40),
                     color: Colors.grey.shade300,
                   ),
-                  Column(
-                    children: [
-                      Text(
-                        widget.rideDetails['price']?.toString() ?? '₹120',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: _appTheme.textColor,
+                  Flexible(
+                    child: Column(
+                      children: [
+                        Text(
+                          widget.rideDetails['price']?.toString() ?? '₹120',
+                          style: TextStyle(
+                            fontSize: Responsive.fontSize(context, 20),
+                            fontWeight: FontWeight.bold,
+                            color: _appTheme.textColor,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Text(
-                        'Fare',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _appTheme.textGrey,
+                        SizedBox(height: Responsive.spacing(context, 4)),
+                        Text(
+                          'Fare',
+                          style: TextStyle(
+                            fontSize: Responsive.fontSize(context, 12),
+                            color: _appTheme.textGrey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Bottom Sheet - Fixed
+          // Bottom Sheet - Fixed (No Scroll)
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            height: MediaQuery.of(context).size.height * 0.35,
             child: Container(
+              height: Responsive.hp(context, 37),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Colors.white,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
@@ -313,12 +392,13 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                 ],
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Drag Handle
                   Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    width: 40,
-                    height: 4,
+                    margin: EdgeInsets.symmetric(vertical: Responsive.spacing(context, 12)),
+                    width: Responsive.spacing(context, 40),
+                    height: Responsive.spacing(context, 4),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(2),
@@ -327,27 +407,31 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
 
                   Expanded(
                     child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Responsive.padding(context, 20),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           // Ride in Progress Header
                           Center(
                             child: Text(
                               'Ride in Progress',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: Responsive.fontSize(context, 18),
                                 fontWeight: FontWeight.bold,
                                 color: _appTheme.textColor,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: Responsive.spacing(context, 16)),
 
                           // Driver Card
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(Responsive.padding(context, 12)),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
@@ -356,11 +440,11 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                             child: Row(
                               children: [
                                 CircleAvatar(
-                                  radius: 30,
+                                  radius: Responsive.spacing(context, 30),
                                   backgroundColor: Colors.grey.shade300,
                                   backgroundImage: const AssetImage('assets/images/driver_placeholder.png'),
                                 ),
-                                const SizedBox(width: 12),
+                                SizedBox(width: Responsive.spacing(context, 12)),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,28 +452,36 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                                       Text(
                                         'Sri Akshay',
                                         style: TextStyle(
-                                          fontSize: 16,
+                                          fontSize: Responsive.fontSize(context, 16),
                                           fontWeight: FontWeight.w600,
                                           color: _appTheme.textColor,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 4),
+                                      SizedBox(height: Responsive.spacing(context, 4)),
                                       Row(
                                         children: [
-                                          Text(
-                                            widget.rideDetails['vehicleNumber'] ?? 'TS02E1655',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: _appTheme.textGrey,
+                                          Flexible(
+                                            child: Text(
+                                              widget.rideDetails['vehicleNumber'] ?? 'TS02E1655',
+                                              style: TextStyle(
+                                                fontSize: Responsive.fontSize(context, 14),
+                                                color: _appTheme.textGrey,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          const Text('⭐', style: TextStyle(fontSize: 12)),
-                                          const SizedBox(width: 4),
-                                          const Text(
+                                          SizedBox(width: Responsive.spacing(context, 8)),
+                                          Text(
+                                            '⭐',
+                                            style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
+                                          ),
+                                          SizedBox(width: Responsive.spacing(context, 4)),
+                                          Text(
                                             '4.9',
                                             style: TextStyle(
-                                              fontSize: 13,
+                                              fontSize: Responsive.fontSize(context, 13),
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -401,20 +493,28 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                                 // Call button
                                 CircleAvatar(
                                   backgroundColor: Colors.grey.shade300,
-                                  radius: 22,
+                                  radius: Responsive.spacing(context, 22),
                                   child: IconButton(
-                                    icon: const Icon(Icons.phone, color: Colors.black, size: 20),
+                                    icon: Icon(
+                                      Icons.phone,
+                                      color: Colors.black,
+                                      size: Responsive.iconSize(context, 20),
+                                    ),
                                     onPressed: () => _makePhoneCall('+919876543210'),
                                     padding: EdgeInsets.zero,
                                   ),    
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: Responsive.spacing(context, 8)),
                                 // Message button
                                 CircleAvatar(
                                   backgroundColor: Colors.grey.shade300,
-                                  radius: 22,
+                                  radius: Responsive.spacing(context, 22),
                                   child: IconButton(
-                                    icon: Icon(Icons.message, color: _appTheme.textColor, size: 20),
+                                    icon: Icon(
+                                      Icons.message,
+                                      color: _appTheme.textColor,
+                                      size: Responsive.iconSize(context, 20),
+                                    ),
                                     onPressed: () => _sendMessage('+919876543210'),
                                     padding: EdgeInsets.zero,
                                   ),
@@ -422,74 +522,92 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: Responsive.spacing(context, 20)),
 
                           // Drop Details Header with Get Help button
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Drop Details',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: _appTheme.textColor,
+                              Flexible(
+                                child: Text(
+                                  'Drop Details',
+                                  style: TextStyle(
+                                    fontSize: Responsive.fontSize(context, 18),
+                                    fontWeight: FontWeight.w600,
+                                    color: _appTheme.textColor,
+                                  ),
                                 ),
                               ),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  // Handle get help action
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Get Help'),
-                                      content: const Text('How can we help you?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('Close'),
+                              Flexible(
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: Text(
+                                          'Get Help',
+                                          style: TextStyle(fontSize: Responsive.fontSize(context, 18)),
                                         ),
-                                      ],
+                                        content: Text(
+                                          'How can we help you?',
+                                          style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: Text(
+                                              'Close',
+                                              style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(
+                                    Icons.help_outline,
+                                    size: Responsive.iconSize(context, 18),
+                                  ),
+                                  label: Text(
+                                    'Get Help',
+                                    style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _appTheme.brandRed,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: Responsive.padding(context, 16),
+                                      vertical: Responsive.padding(context, 10),
                                     ),
-                                  );
-                                },
-                                icon: const Icon(Icons.help_outline, size: 18),
-                                label: const Text('Get Help'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _appTheme.brandRed,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                    elevation: 0,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  elevation: 0,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: Responsive.spacing(context, 16)),
 
                           // Drop Location
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                margin: const EdgeInsets.only(top: 2),
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
+                                margin: EdgeInsets.only(top: Responsive.spacing(context, 2)),
+                                padding: EdgeInsets.all(Responsive.padding(context, 4)),
+                                decoration: const BoxDecoration(
                                   color: Colors.green,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.circle,
                                   color: Colors.green,
-                                  size: 8,
+                                  size: Responsive.spacing(context, 8),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: Responsive.spacing(context, 12)),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,17 +616,17 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                                     Text(
                                       widget.dropLocation.split(',').first.trim(),
                                       style: TextStyle(
-                                        fontSize: 16,
+                                        fontSize: Responsive.fontSize(context, 16),
                                         fontWeight: FontWeight.w600,
                                         color: _appTheme.textColor,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    SizedBox(height: Responsive.spacing(context, 4)),
                                     // Full address in grey
                                     Text(
                                       widget.dropLocation,
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: Responsive.fontSize(context, 13),
                                         color: _appTheme.textGrey,
                                         height: 1.4,
                                       ),
@@ -520,9 +638,9 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
-                      ],
-                    ),
+                          SizedBox(height: Responsive.spacing(context, 20)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -530,6 +648,7 @@ class _RideInProgressScreenState extends State<RideInProgressScreen> {
               ),
             ),
           ),
+        
         ],
       ),
     );

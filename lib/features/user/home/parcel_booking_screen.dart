@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_theme.dart';
+import 'finding_driver_screen.dart';
+import '../../../core/utils/responsive.dart';
 
 class ParcelBookingScreen extends StatefulWidget {
   final String serviceType;
@@ -106,13 +108,21 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
           Marker(
             markerId: const MarkerId('pickup'),
             position: _pickupLatLng!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            infoWindow: InfoWindow(
+              title: 'Pickup Location',
+              snippet: widget.pickupLocation,
+            ),
           ),
         if (_dropLatLng != null)
           Marker(
             markerId: const MarkerId('drop'),
             position: _dropLatLng!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            infoWindow: InfoWindow(
+              title: 'Drop Location',
+              snippet: widget.dropLocation,
+            ),
           ),
       };
     });
@@ -126,7 +136,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
             polylineId: const PolylineId('route'),
             points: [_pickupLatLng!, _dropLatLng!],
             color: Colors.black,
-            width: 5,
+            width: 4,
           ),
         };
       });
@@ -155,202 +165,50 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
               polylines: _polylines,
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
             ),
 
-            // Top navigation buttons
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Back button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    // Location button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.my_location, color: Colors.black),
-                        onPressed: () {
-                          if (_pickupLatLng != null && _mapController != null) {
-                            _mapController!.animateCamera(
-                              CameraUpdate.newLatLng(_pickupLatLng!),
-                            );
-                          }
-                        },
-                      ),
+            // Bottom sheet - Fixed (Not Draggable)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: Responsive.hp(context, 50),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, -2),
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            // Location info cards on map
-            Positioned(
-              top: 80,
-              left: 16,
-              right: 16,
-              child: Column(
-                children: [
-                  // Pickup location card
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Miyapur',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                              Text(
-                                'Tela...',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.edit, size: 18, color: Colors.grey),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Drop location card
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '7/13, Road N...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade800,
-                            ),
-                          ),
-                        ),
-                        const Icon(Icons.edit, size: 18, color: Colors.grey),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Bottom sheet
-            DraggableScrollableSheet(
-              initialChildSize: 0.45,
-              minChildSize: 0.3,
-              maxChildSize: 0.7,
-              builder: (context, scrollController) {
-                return Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        offset: Offset(0, -2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: Responsive.spacing(context, 40),
+                      height: Responsive.spacing(context, 4),
+                      margin: EdgeInsets.symmetric(vertical: Responsive.spacing(context, 12)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Handle bar
-                      Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
+                    ),
 
-                      Expanded(
-                        child: SingleChildScrollView(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: Responsive.padding(context, 16)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                               // Service options
                               Row(
                                 children: [
@@ -368,7 +226,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                       },
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: Responsive.spacing(context, 12)),
                                   Expanded(
                                     child: _buildServiceOption(
                                       'Parcel - 3 wheeler',
@@ -386,7 +244,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                 ],
                               ),
 
-                              const SizedBox(height: 20),
+                              SizedBox(height: Responsive.spacing(context, 20)),
 
                               // Payment and Offers
                               Row(
@@ -395,38 +253,54 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                     child: InkWell(
                                       onTap: () {},
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: EdgeInsets.symmetric(vertical: Responsive.padding(context, 12)),
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.money, size: 20, color: Colors.grey),
-                                            const SizedBox(width: 8),
-                                            const Text(
+                                            Icon(
+                                              Icons.money,
+                                              size: Responsive.iconSize(context, 20),
+                                              color: Colors.grey,
+                                            ),
+                                            SizedBox(width: Responsive.spacing(context, 8)),
+                                            Text(
                                               'Cash',
-                                              style: TextStyle(fontSize: 14),
+                                              style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
                                             ),
                                             const Spacer(),
-                                            const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                                            Icon(
+                                              Icons.chevron_right,
+                                              size: Responsive.iconSize(context, 20),
+                                              color: Colors.grey,
+                                            ),
                                           ],
                                         ),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  SizedBox(width: Responsive.spacing(context, 16)),
                                   Expanded(
                                     child: InkWell(
                                       onTap: () {},
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: EdgeInsets.symmetric(vertical: Responsive.padding(context, 12)),
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.percent, size: 20, color: Colors.grey),
-                                            const SizedBox(width: 8),
-                                            const Text(
+                                            Icon(
+                                              Icons.percent,
+                                              size: Responsive.iconSize(context, 20),
+                                              color: Colors.grey,
+                                            ),
+                                            SizedBox(width: Responsive.spacing(context, 8)),
+                                            Text(
                                               '% Offers',
-                                              style: TextStyle(fontSize: 14),
+                                              style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
                                             ),
                                             const Spacer(),
-                                            const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                                            Icon(
+                                              Icons.chevron_right,
+                                              size: Responsive.iconSize(context, 20),
+                                              color: Colors.grey,
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -435,14 +309,17 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                 ],
                               ),
 
-                              const SizedBox(height: 16),
+                              SizedBox(height: Responsive.spacing(context, 16)),
 
                               // PAY AT and Pickup/Drop toggle
                               Row(
                                 children: [
                                   Expanded(
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: Responsive.padding(context, 12),
+                                        horizontal: Responsive.padding(context, 16),
+                                      ),
                                       decoration: BoxDecoration(
                                         border: Border.all(color: Colors.grey.shade300),
                                         borderRadius: BorderRadius.circular(8),
@@ -450,35 +327,39 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.account_balance_wallet, size: 18, color: Colors.grey),
-                                          const SizedBox(width: 8),
-                                          const Text(
+                                          Icon(
+                                            Icons.account_balance_wallet,
+                                            size: Responsive.iconSize(context, 18),
+                                            color: Colors.grey,
+                                          ),
+                                          SizedBox(width: Responsive.spacing(context, 8)),
+                                          Text(
                                             'PAY AT',
-                                            style: TextStyle(fontSize: 14),
+                                            style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: Responsive.spacing(context, 12)),
                                   Expanded(
                                     child: Row(
                                       children: [
                                         Expanded(
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            padding: EdgeInsets.symmetric(vertical: Responsive.padding(context, 12)),
                                             decoration: BoxDecoration(
-                                              color: Colors.blue,
+                                              color: const Color(0xFFE53935), // Red color
                                               borderRadius: const BorderRadius.horizontal(
                                                 left: Radius.circular(8),
                                               ),
                                             ),
-                                            child: const Center(
+                                            child: Center(
                                               child: Text(
                                                 'Pickup',
                                                 style: TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 14,
+                                                  fontSize: Responsive.fontSize(context, 14),
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               ),
@@ -487,7 +368,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                         ),
                                         Expanded(
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            padding: EdgeInsets.symmetric(vertical: Responsive.padding(context, 12)),
                                             decoration: BoxDecoration(
                                               color: Colors.grey.shade200,
                                               borderRadius: const BorderRadius.horizontal(
@@ -499,7 +380,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                                 'Drop',
                                                 style: TextStyle(
                                                   color: Colors.grey.shade700,
-                                                  fontSize: 14,
+                                                  fontSize: Responsive.fontSize(context, 14),
                                                 ),
                                               ),
                                             ),
@@ -511,55 +392,66 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                 ],
                               ),
 
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Book Parcel button
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, -2),
-                            ),
+                            SizedBox(height: Responsive.spacing(context, 20)),
                           ],
                         ),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Book parcel
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow.shade600,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+
+                    // Book Parcel button
+                    Container(
+                      padding: EdgeInsets.all(Responsive.padding(context, 16)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FindingDriverScreen(
+                                  pickupLocation: widget.pickupLocation,
+                                  dropLocation: widget.dropLocation,
+                                  rideType: _selectedService,
+                                  pickupLatLng: _pickupLatLng,
+                                  dropLatLng: _dropLatLng,
+                                ),
                               ),
-                              elevation: 0,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE53935), // Red color
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: Responsive.padding(context, 16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              'Book Parcel',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'Book Parcel',
+                            style: TextStyle(
+                              fontSize: Responsive.fontSize(context, 16),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                );
-              },
+                    ),
+                  ],
+                ),
+              ),
             ),
+         
           ],
         ),
       ),
@@ -582,7 +474,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color: isSelected ? Colors.red : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -600,7 +492,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.blue : Colors.black,
+                color: isSelected ? Colors.black : Colors.grey.shade600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -621,7 +513,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: isSelected ? Colors.black : Colors.grey.shade600,
               ),
             ),
           ],

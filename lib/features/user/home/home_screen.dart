@@ -15,6 +15,7 @@ import '../history/history_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'ride_booking_screen.dart';
+import '../../../core/utils/responsive.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -367,6 +368,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 @override
 Widget build(BuildContext context) {
   final localizations = AppLocalizations.of(context)!;
+  final screenWidth = Responsive.width(context);
 
   return Directionality(
     textDirection: _appTheme.textDirection,
@@ -374,12 +376,12 @@ Widget build(BuildContext context) {
       backgroundColor: _appTheme.backgroundColor,
 
       appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
+          preferredSize: Size.fromHeight(Responsive.hp(context, 9.85)),
           child: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
             scrolledUnderElevation: 0,
-            toolbarHeight: 80,
+            toolbarHeight: Responsive.hp(context, 9.85),
             automaticallyImplyLeading: false,
             surfaceTintColor: Colors.transparent,
             // leading: IconButton(
@@ -410,7 +412,7 @@ Widget build(BuildContext context) {
                 builder: (context) {
                   print('🎨 Building AppBar title. Location: "$_currentLocationName", Loading: $_isLoadingLocation');
                   return Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(Responsive.padding(context, 12)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -419,39 +421,39 @@ Widget build(BuildContext context) {
                       Text(
                         "Current location",
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: Responsive.fontSize(context, 12),
                           color: const Color(0xFF8E8E8E),
                           fontWeight: FontWeight.normal,
                           fontFamily: 'Alata',
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: Responsive.spacing(context, 8)),
                       // Location name row
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.5,
+                            width: screenWidth * 0.5,
                             child: _isLoadingLocation
                                 ? Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       SizedBox(
-                                        width: 14,
-                                        height: 14,
+                                        width: Responsive.spacing(context, 14),
+                                        height: Responsive.spacing(context, 14),
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor: AlwaysStoppedAnimation<Color>(_appTheme.brandRed),
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
+                                      SizedBox(width: Responsive.spacing(context, 6)),
                                       Expanded(
                                         child: Text(
                                           _currentLocationName.isNotEmpty 
                                               ? _currentLocationName 
                                               : "Getting location...",
                                           style: TextStyle(
-                                            fontSize: 16,
+                                            fontSize: Responsive.fontSize(context, 16),
                                             color: const Color(0xFF121212),
                                             fontWeight: FontWeight.w500,
                                             fontFamily: 'Alata',
@@ -467,7 +469,7 @@ Widget build(BuildContext context) {
                                         ? _currentLocationName 
                                         : "Tap to set location",
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: Responsive.fontSize(context, 16),
                                       color: _currentLocationName.isNotEmpty 
                                           ? const Color(0xFF121212)
                                           : const Color(0xFF8E8E8E),
@@ -478,11 +480,11 @@ Widget build(BuildContext context) {
                                     maxLines: 1,
                                   ),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: Responsive.spacing(context, 4)),
                           Icon(
                             Icons.keyboard_arrow_down,
                             color: const Color(0xFF121212),
-                            size: 18,
+                            size: Responsive.iconSize(context, 18),
                           ),
                         ],
                       ),
@@ -498,12 +500,13 @@ Widget build(BuildContext context) {
       /// TOP RIGHT ICONS
       actions: [
         // Notification icon with red dot
-        Stack(
+            Stack(
           children: [
             IconButton(
               icon: Icon(
                 Icons.notifications_outlined,
                 color: _appTheme.textColor,
+                size: Responsive.iconSize(context, 24),
               ),
               onPressed: () {
                 Navigator.push(
@@ -515,11 +518,11 @@ Widget build(BuildContext context) {
               },
             ),
             Positioned(
-              right: 8,
-              top: 8,
+              right: Responsive.spacing(context, 8),
+              top: Responsive.spacing(context, 8),
               child: Container(
-                width: 8,
-                height: 8,
+                width: Responsive.spacing(context, 8),
+                height: Responsive.spacing(context, 8),
                 decoration: BoxDecoration(
                   color: _appTheme.brandRed,
                   shape: BoxShape.circle,
@@ -533,20 +536,25 @@ Widget build(BuildContext context) {
           ),
         ),
       /// BODY
-      body: SingleChildScrollView(
-        child: Column(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
            
             /// HEADER - QUOTES CAROUSEL
             Container(
               color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 25),
+              padding: EdgeInsets.symmetric(
+                horizontal: Responsive.padding(context, 16),
+                vertical: Responsive.spacing(context, 25),
+              ),
               child: Column(
                 
                 children: [
                   SizedBox(
-                    height: 100,
+                    height: Responsive.hp(context, 12.3),
                     child: PageView(
                       controller: _quotePageController,
                       children: [
@@ -554,22 +562,32 @@ Widget build(BuildContext context) {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              "Pocket-Friendly Rides, Always!",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Akatab',
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.spacing(context, 16),
+                              ),
+                              child: Text(
+                                "Pocket-Friendly Rides, Always!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 20),
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Akatab',
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "No surge fees, no hidden charges - just low prices every time!",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'Akatab',
+                            SizedBox(height: Responsive.spacing(context, 8)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.spacing(context, 16),
+                              ),
+                              child: Text(
+                                "No surge fees, no hidden charges - just low prices every time!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 14),
+                                  fontFamily: 'Akatab',
+                                ),
                               ),
                             ),
                           ],
@@ -578,21 +596,31 @@ Widget build(BuildContext context) {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              "Fast & Reliable Service",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.spacing(context, 16),
+                              ),
+                              child: Text(
+                                "Fast & Reliable Service",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 20),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              "Get to your destination quickly and safely with our trusted drivers!",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'Akatab',
+                            SizedBox(height: Responsive.spacing(context, 8)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.spacing(context, 16),
+                              ),
+                              child: Text(
+                                "Get to your destination quickly and safely with our trusted drivers!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 14),
+                                  fontFamily: 'Akatab',
+                                ),
                               ),
                             ),
                           ],
@@ -601,21 +629,31 @@ Widget build(BuildContext context) {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              "24/7 Available",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.spacing(context, 16),
+                              ),
+                              child: Text(
+                                "24/7 Available",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 20),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              "Book a ride anytime, anywhere - we're always here for you!",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'Akatab',
+                            SizedBox(height: Responsive.spacing(context, 8)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.spacing(context, 16),
+                              ),
+                              child: Text(
+                                "Book a ride anytime, anywhere - we're always here for you!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 14),
+                                  fontFamily: 'Akatab',
+                                ),
                               ),
                             ),
                           ],
@@ -623,7 +661,7 @@ Widget build(BuildContext context) {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: Responsive.spacing(context, 12)),
                   // Carousel dots
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -635,9 +673,9 @@ Widget build(BuildContext context) {
                               ? (_quotePageController.page ?? 0).round()
                               : 0;
                           return Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: Responsive.spacing(context, 8),
+                            height: Responsive.spacing(context, 8),
+                            margin: EdgeInsets.symmetric(horizontal: Responsive.spacing(context, 3)),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: currentPage == index
@@ -659,16 +697,18 @@ Widget build(BuildContext context) {
             Container(
               color: Colors.white,
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: Responsive.padding(context, 16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Delivery Services',
-                    style: TextStyle(fontSize: 14, 
-                    fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: Responsive.fontSize(context, 14),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: Responsive.spacing(context, 16)),
 
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -701,7 +741,7 @@ Widget build(BuildContext context) {
                             print('Stack trace: $stackTrace');
                           }
                         }, isSelected: _selectedDeliveryService == 'Parcel'),
-                        const SizedBox(width: 20),
+                        SizedBox(width: Responsive.spacing(context, 20)),
                         _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
                           Navigator.push(
                             context,
@@ -716,7 +756,7 @@ Widget build(BuildContext context) {
                             });
                           });
                         }, isSelected: _selectedDeliveryService == 'Delivery'),
-                        const SizedBox(width: 8),
+                        SizedBox(width: Responsive.spacing(context, 8)),
                         InkWell(
                           onTap: () {
                             Navigator.push(
@@ -729,40 +769,40 @@ Widget build(BuildContext context) {
                           child: Column(
                             children: [
                               Container(
-                                width: 100,
-                                height: 100,
+                                width: Responsive.wp(context, 26.7),
+                                height: Responsive.wp(context, 26.7),
                                 alignment: Alignment.center,
                                 
-                                child: const Text(
+                                child: Text(
                                   'See all',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: Responsive.fontSize(context, 14),
                                     fontWeight: FontWeight.w600,
                                     color: Colors.blue,
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              const SizedBox(height: 20), // Spacing to align with other options
+                              SizedBox(height: Responsive.spacing(context, 8)),
+                              SizedBox(height: Responsive.spacing(context, 20)), // Spacing to align with other options
                             ],
                           ),
                         ),
-                        const SizedBox(width: 20),
+                        SizedBox(width: Responsive.spacing(context, 20)),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: Responsive.spacing(context, 24)),
 
                   /// BOOK RIDE SECTION
-                  const Text(
+                  Text(
                     'Book Ride',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: Responsive.fontSize(context, 14),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: Responsive.spacing(context, 16)),
 
                   // Search Bar
                   InkWell(
@@ -785,32 +825,31 @@ Widget build(BuildContext context) {
                           width: 1,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: Responsive.padding(context, 16),
+                        vertical: Responsive.padding(context, 16),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.search,
                             color:_appTheme.textColor,
-                            fontWeight: FontWeight.w500,
-                            
+                            size: Responsive.iconSize(context, 24),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: Responsive.spacing(context, 12)),
                           Text(
                             'Where to drop?',
                             style: TextStyle(
                               color: _appTheme.textColor,
                               fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                              fontSize: Responsive.fontSize(context, 16),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: Responsive.spacing(context, 16)),
 
                   // Suggested Locations
                   _buildSuggestedLocation(
@@ -830,7 +869,7 @@ Widget build(BuildContext context) {
                       );
                     },
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: Responsive.spacing(context, 12)),
                   _buildSuggestedLocation(
                     context,
                     name: 'Hotel Grand Sitara',
@@ -848,7 +887,7 @@ Widget build(BuildContext context) {
                       );
                     },
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: Responsive.spacing(context, 12)),
                   _buildSuggestedLocation(
                     context,
                     name: 'GVK Mall',
@@ -867,17 +906,17 @@ Widget build(BuildContext context) {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: Responsive.spacing(context, 24)),
 
                   /// TRENDING OFFERS
                   Text(
                     'Trending Offers',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: Responsive.fontSize(context, 14),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: Responsive.spacing(context, 16)),
 
                   _offerCard(
                     context,
@@ -892,7 +931,7 @@ Widget build(BuildContext context) {
                     code: "SAVE15",
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: Responsive.spacing(context, 24)),
 
                   /// BANNER
                   Image.asset(
@@ -901,7 +940,7 @@ Widget build(BuildContext context) {
                     errorBuilder: (_, __, ___) => const SizedBox(),
                   ),
 
-                  const SizedBox(height: 40),
+                  SizedBox(height: Responsive.spacing(context, 40)),
 
                   /// FOOTER
                   Center(
@@ -912,37 +951,55 @@ Widget build(BuildContext context) {
                           children: [
                             Image.asset(
                               'assets/flag_india.png',
-                              width: 16,
-                              height: 16,
+                              width: Responsive.spacing(context, 16),
+                              height: Responsive.spacing(context, 16),
                               errorBuilder: (_, __, ___) =>
-                                  const SizedBox(width: 16, height: 16),
+                                  SizedBox(
+                                    width: Responsive.spacing(context, 16),
+                                    height: Responsive.spacing(context, 16),
+                                  ),
                             ),
-                            const SizedBox(width: 6),
-                            const Text("Made in India"),
-                            const SizedBox(width: 8),
-                            const Text("|"),
-                            const SizedBox(width: 8),
-                            const Text("Rooted in"),
+                            SizedBox(width: Responsive.spacing(context, 6)),
+                            Text(
+                              "Made in India",
+                              style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
+                            ),
+                            SizedBox(width: Responsive.spacing(context, 8)),
+                            Text(
+                              "|",
+                              style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
+                            ),
+                            SizedBox(width: Responsive.spacing(context, 8)),
+                            Text(
+                              "Rooted in",
+                              style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
+                            ),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                             Image.asset(
                               'assets/charminar.png',
-                              width: 20,
-                              height: 18,
+                              width: Responsive.spacing(context, 20),
+                              height: Responsive.spacing(context, 18),
                               errorBuilder: (_, __, ___) =>
-                                  const SizedBox(width: 20, height: 18),
+                                  SizedBox(
+                                    width: Responsive.spacing(context, 20),
+                                    height: Responsive.spacing(context, 18),
+                                  ),
                             ),
                                 Transform.translate(
-                                  offset: const Offset(-3, 0),
-                                  child: const Text("yderabad"),
+                                  offset: Offset(-Responsive.spacing(context, 3), 0),
+                                  child: Text(
+                                    "yderabad",
+                                    style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: Responsive.spacing(context, 20)),
                       ],
                     ),
                   ),
@@ -951,6 +1008,8 @@ Widget build(BuildContext context) {
             ),
           ],
         ),
+          );
+        },
       ),
 
       /// BOTTOM NAV
@@ -1016,8 +1075,8 @@ Widget build(BuildContext context) {
             mainAxisSize: MainAxisSize.min,
               children: [
           Container(
-            width: 120,
-            height: 120,
+            width: Responsive.wp(context, 32),
+            height: Responsive.wp(context, 32),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -1041,7 +1100,7 @@ Widget build(BuildContext context) {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(Responsive.padding(context, 12)),
                 child: Image.asset(
                   imagePath,
                   fit: BoxFit.contain,
@@ -1051,18 +1110,18 @@ Widget build(BuildContext context) {
                     return Icon(
                       Icons.location_on,
                       color: _appTheme.brandRed,
-                      size: 50,
+                      size: Responsive.iconSize(context, 50),
                     );
                   },
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: Responsive.spacing(context, 8)),
                 Text(
                   title,
-                  style: const TextStyle(
-              fontSize: 14,
+                  style: TextStyle(
+              fontSize: Responsive.fontSize(context, 14),
               fontWeight: FontWeight.w500,
                   color: Colors.black,
                   ),
@@ -1086,7 +1145,10 @@ Widget build(BuildContext context) {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: EdgeInsets.symmetric(
+          vertical: Responsive.spacing(context, 12),
+          horizontal: Responsive.padding(context, 16),
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -1100,20 +1162,20 @@ Widget build(BuildContext context) {
             // Clock icon for recent locations
             if (isRecent)
               Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: EdgeInsets.only(right: Responsive.spacing(context, 12)),
                 child: Icon(
                   Icons.access_time,
-                  size: 18,
+                  size: Responsive.iconSize(context, 18),
                   color: Colors.grey.shade600,
                 ),
               ),
             // Location icon if not recent
             if (!isRecent)
               Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: EdgeInsets.only(right: Responsive.spacing(context, 12)),
                 child: Icon(
                   Icons.location_on,
-                  size: 18,
+                  size: Responsive.iconSize(context, 18),
                   color: _appTheme.brandRed,
                 ),
               ),
@@ -1124,17 +1186,17 @@ Widget build(BuildContext context) {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: Responsive.fontSize(context, 16),
                       fontWeight: FontWeight.w400,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: Responsive.spacing(context, 4)),
                   Text(
                     address,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: Responsive.fontSize(context, 12),
                       color: Colors.grey.shade600,
                     ),
                     maxLines: 1,
@@ -1147,7 +1209,7 @@ Widget build(BuildContext context) {
             Icon(
               isFavorite ? Icons.favorite : Icons.favorite_border,
               color: isFavorite ? _appTheme.brandRed : Colors.grey.shade400,
-              size: 20,
+              size: Responsive.iconSize(context, 20),
             ),
           ],
         ),
@@ -1158,18 +1220,22 @@ Widget build(BuildContext context) {
       Widget _arrowButton(IconData icon) {
         final AppTheme _appTheme = AppTheme();
         return Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(Responsive.padding(context, 8)),
           decoration: BoxDecoration(
             color: _appTheme.iconBgColor,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 16, color: _appTheme.textColor),
+          child: Icon(
+            icon,
+            size: Responsive.iconSize(context, 16),
+            color: _appTheme.textColor,
+          ),
         );
       }
 
 Widget bannerCard(String image) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: EdgeInsets.symmetric(horizontal: Responsive.spacing(context, 6)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Image.asset(image, fit: BoxFit.cover),
@@ -1197,10 +1263,10 @@ Widget _offerCard(
       );
     },
     child: Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: Responsive.spacing(context, 16)),
+      padding: EdgeInsets.all(Responsive.padding(context, 16)),
       decoration: BoxDecoration(
-       color: Colors.white, // Grey background
+       color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: _appTheme.dividerColor,
@@ -1221,17 +1287,17 @@ Widget _offerCard(
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: Responsive.fontSize(context, 16),
                         fontWeight: FontWeight.w500,
-                        color: _appTheme.textColor, // Black text
+                        color: _appTheme.textColor,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: Responsive.spacing(context, 6)),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: _appTheme.textGrey, // Grey text
-                        fontSize: 14,
+                        color: _appTheme.textGrey,
+                        fontSize: Responsive.fontSize(context, 14),
                       ),
                     ),
                   ],
@@ -1242,7 +1308,7 @@ Widget _offerCard(
                   Clipboard.setData(ClipboardData(text: code));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text("Copied to clipboard"),
+                      content: Text("Copied to clipboard"),
                       duration: const Duration(seconds: 2),
                       backgroundColor: _appTheme.brandRed,
                       behavior: SnackBarBehavior.floating,
@@ -1254,17 +1320,20 @@ Widget _offerCard(
                 },
                 child: Icon(
                   Icons.copy,
-                  color: _appTheme.brandRed, // Red branding color
-                  size: 20,
+                  color: _appTheme.brandRed,
+                  size: Responsive.iconSize(context, 20),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: Responsive.spacing(context, 12)),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: EdgeInsets.symmetric(
+              horizontal: Responsive.padding(context, 12),
+              vertical: Responsive.padding(context, 6),
+            ),
             decoration: BoxDecoration(
-              color: _appTheme.brandRed.withOpacity(0.1), // Light red background
+              color: _appTheme.brandRed.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: _appTheme.brandRed.withOpacity(0.3),
@@ -1275,8 +1344,8 @@ Widget _offerCard(
               code,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: _appTheme.brandRed, // Red branding color
-                fontSize: 12,
+                color: _appTheme.brandRed,
+                fontSize: Responsive.fontSize(context, 12),
               ),
             ),
           ),

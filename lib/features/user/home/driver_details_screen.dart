@@ -5,6 +5,8 @@ import 'ride_in_progress_screen.dart';
 import 'cancel_ride_reasons_screen.dart';
 import '../../../core/theme/app_theme.dart';
 
+import '../../../core/utils/responsive.dart';
+
 class DriverDetailsScreen extends StatefulWidget {
   final String pickupLocation;
   final String dropLocation;
@@ -30,8 +32,8 @@ class DriverDetailsScreen extends StatefulWidget {
 class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
   final AppTheme _appTheme = AppTheme();
   GoogleMapController? _mapController;
-  final Set<Polyline> _polylines = {};
-  final Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+  Set<Marker> _markers = {};
   final int _arrivalMinutes = 10;
   Timer? _countdownTimer;
   Timer? _driverLocationTimer;
@@ -77,75 +79,68 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
     
     final pickup = widget.pickupLatLng ?? const LatLng(17.385044, 78.486671);
     final drop = widget.dropLatLng ?? const LatLng(17.440181, 78.348457);
+    
+    // Driver location (initialize if not set)
+    if (_driverLocation == null) {
+      _driverLocation = LatLng(
+        pickup.latitude + 0.02,
+        pickup.longitude + 0.01,
+      );
+    }
 
-    // Add pickup marker
-    _markers.add(
-      Marker(
-        markerId: const MarkerId('pickup'),
-        position: pickup,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        infoWindow: InfoWindow(title: 'Pickup', snippet: widget.pickupLocation),
-      ),
-    );
-
-    // Add drop marker
-    _markers.add(
-      Marker(
-        markerId: const MarkerId('drop'),
-        position: drop,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: InfoWindow(title: 'Drop', snippet: widget.dropLocation),
-      ),
-    );
-
-    // Add driver marker (moving)
-    if (_driverLocation != null) {
-      _markers.add(
+    // Add markers using setState like ride_in_progress_screen
+    setState(() {
+      _markers = {
+        // Pickup location marker (Blue - user's current location)
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: pickup,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: InfoWindow(
+            title: 'Pickup Location',
+            snippet: widget.pickupLocation,
+          ),
+        ),
+        // Driver live location marker (Green)
         Marker(
           markerId: const MarkerId('driver'),
           position: _driverLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          infoWindow: const InfoWindow(title: 'Driver', snippet: 'Sri Akshay'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: const InfoWindow(
+            title: 'Driver Location',
+            snippet: 'Your driver is here',
+          ),
         ),
-      );
-    }
+        // Drop location marker (Red)
+        Marker(
+          markerId: const MarkerId('drop'),
+          position: drop,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: 'Destination',
+            snippet: widget.dropLocation,
+          ),
+        ),
+      };
+    });
 
-    // Add route polyline from driver to pickup
-    if (_driverLocation != null) {
-      _polylines.add(
+    // Add route polyline from driver to drop (like ride_in_progress_screen)
+    setState(() {
+      _polylines = {
         Polyline(
-          polylineId: const PolylineId('driverRoute'),
-          points: [_driverLocation!, pickup],
-          color: Colors.blue,
+          polylineId: const PolylineId('route'),
+          points: [_driverLocation!, drop],
+          color: _appTheme.brandRed,
           width: 4,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
         ),
-      );
-    }
+      };
+    });
 
-    // Add route polyline from pickup to drop
-    _polylines.add(
-      Polyline(
-        polylineId: const PolylineId('route'),
-        points: [pickup, drop],
-        color: _appTheme.brandRed,
-        width: 4,
-      ),
-    );
-
-    // Fit bounds to show all markers
-    if (_mapController != null && _driverLocation != null) {
-      final bounds = LatLngBounds(
-        southwest: LatLng(
-          [pickup.latitude, drop.latitude, _driverLocation!.latitude].reduce((a, b) => a < b ? a : b),
-          [pickup.longitude, drop.longitude, _driverLocation!.longitude].reduce((a, b) => a < b ? a : b),
-        ),
-        northeast: LatLng(
-          [pickup.latitude, drop.latitude, _driverLocation!.latitude].reduce((a, b) => a > b ? a : b),
-          [pickup.longitude, drop.longitude, _driverLocation!.longitude].reduce((a, b) => a > b ? a : b),
-        ),
+    // Center on driver location
+    if (_mapController != null) {
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(_driverLocation!, 14),
       );
-      await _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
     }
   }
 
@@ -186,23 +181,54 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
   void _updateDriverMarker() async {
     if (_driverLocation == null || !_isMapInitialized) return;
     
-    // Remove old driver marker
-    _markers.removeWhere((marker) => marker.markerId.value == 'driver');
+    final pickup = widget.pickupLatLng ?? const LatLng(17.385044, 78.486671);
+    final drop = widget.dropLatLng ?? const LatLng(17.440181, 78.348457);
     
-    // Add updated driver marker with custom icon (car)
-    _markers.add(
-      Marker(
-        markerId: const MarkerId('driver'),
-        position: _driverLocation!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-        infoWindow: const InfoWindow(title: 'Driver', snippet: 'Sri Akshay'),
-        rotation: 45, // Car rotation angle
-      ),
-    );
-    
-    if (mounted) {
-      setState(() {});
-    }
+    // Update markers using setState like ride_in_progress_screen
+    setState(() {
+      _markers = {
+        // Pickup location marker (Blue - user's current location)
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: pickup,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: InfoWindow(
+            title: 'Pickup Location',
+            snippet: widget.pickupLocation,
+          ),
+        ),
+        // Driver live location marker (Green)
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: _driverLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: const InfoWindow(
+            title: 'Driver Location',
+            snippet: 'Your driver is here',
+          ),
+        ),
+        // Drop location marker (Red)
+        Marker(
+          markerId: const MarkerId('drop'),
+          position: drop,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: 'Destination',
+            snippet: widget.dropLocation,
+          ),
+        ),
+      };
+      
+      // Update polyline from driver to drop
+      _polylines = {
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: [_driverLocation!, drop],
+          color: _appTheme.brandRed,
+          width: 4,
+        ),
+      };
+    });
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
@@ -254,40 +280,79 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = Responsive.height(context);
+    final buttonTop = screenHeight * 0.35;
+    final sheetHeight = Responsive.hp(context, 55);
+    final handleWidth = Responsive.spacing(context, 40);
+    final handleHeight = Responsive.spacing(context, 4);
+    final horizontalPadding = Responsive.padding(context, 20);
+    final smallSpacing = Responsive.spacing(context, 12);
+    final mediumSpacing = Responsive.spacing(context, 16);
+    final bannerFontSize = Responsive.fontSize(context, 12);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Full Map
+          // Map View
           GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: widget.pickupLatLng ?? const LatLng(17.385044, 78.486671),
-              zoom: 12,
+              target: widget.pickupLatLng ?? const LatLng(17.4175, 78.4934),
+              zoom: 14.0,
             ),
             markers: _markers,
             polylines: _polylines,
+            myLocationEnabled: true,
             myLocationButtonEnabled: false,
+            mapType: MapType.normal,
             zoomControlsEnabled: false,
+            compassEnabled: true,
+            buildingsEnabled: true,
+            trafficEnabled: false,
             mapToolbarEnabled: false,
+            rotateGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            tiltGesturesEnabled: true,
+            zoomGesturesEnabled: true,
             onMapCreated: (controller) {
               _mapController = controller;
               _initializeMap();
             },
           ),
+            Positioned(
+            top: buttonTop,
+            left: Responsive.padding(context, 16),
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: Responsive.spacing(context, 20),
+              child: IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: _appTheme.textColor,
+                  size: Responsive.iconSize(context, 20),
+                ),
+                onPressed: () => Navigator.pop(context),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
 
           // Re-center map button
           Positioned(
-            top: 300,
-            right: 16,
+            top: buttonTop,
+            right: Responsive.padding(context, 16),
             child: CircleAvatar(
               backgroundColor: Colors.white,
-              radius: 20,
+              radius: Responsive.spacing(context, 20),
               child: IconButton(
-                icon: Icon(Icons.my_location, color: _appTheme.textColor, size: 20),
+                icon: Icon(
+                  Icons.my_location,
+                  color: _appTheme.textColor,
+                  size: Responsive.iconSize(context, 20),
+                ),
                 onPressed: () {
-                  if (_mapController != null && widget.pickupLatLng != null) {
+                  if (_mapController != null && widget.dropLatLng != null) {
                     _mapController!.animateCamera(
-                      CameraUpdate.newLatLngZoom(widget.pickupLatLng!, 14),
+                      CameraUpdate.newLatLngZoom(widget.dropLatLng!, 14),
                     );
                   }
                 },
@@ -295,13 +360,12 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
               ),
             ),
           ),
-
           // Bottom Sheet - Fixed
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            height: MediaQuery.of(context).size.height * 0.55,
+            height: sheetHeight,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -321,9 +385,9 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                 children: [
                   // Drag Handle
                   Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    width: 40,
-                    height: 4,
+                    margin: EdgeInsets.symmetric(vertical: smallSpacing),
+                    width: handleWidth,
+                    height: handleHeight,
                     decoration: BoxDecoration(
                       color: _appTheme.textGrey,
                       borderRadius: BorderRadius.circular(2),
@@ -334,7 +398,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                   Expanded(
                     child: SingleChildScrollView(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -343,31 +407,34 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                               child: Text(
                                 'Partner Arriving in $_arrivalMinutes mins',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: Responsive.fontSize(context, 18),
                                   fontWeight: FontWeight.w600,
                                   color: _appTheme.textColor,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: mediumSpacing),
 
                             // OTP Section - Label left, digits right
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Share OTP with Partner',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: _appTheme.textColor,
+                                Flexible(
+                                  child: Text(
+                                    'Share OTP with Partner',
+                                    style: TextStyle(
+                                      fontSize: Responsive.fontSize(context, 16),
+                                      color: _appTheme.textColor,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 Row(
                                   children: _otp.split('').map((digit) {
                                     return Container(
-                                      margin: const EdgeInsets.only(left: 8),
-                                      width: 40,
-                                      height: 40,
+                                      margin: EdgeInsets.only(left: smallSpacing / 2),
+                                      width: Responsive.spacing(context, 40),
+                                      height: Responsive.spacing(context, 40),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF1E3A5F),
                                         borderRadius: BorderRadius.circular(8),
@@ -375,8 +442,8 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                       alignment: Alignment.center,
                                       child: Text(
                                         digit,
-                                        style: const TextStyle(
-                                          fontSize: 20,
+                                        style: TextStyle(
+                                          fontSize: Responsive.fontSize(context, 20),
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
                                         ),
@@ -386,11 +453,11 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 24),
+                            SizedBox(height: mediumSpacing),
 
                             // Driver Card
                             Container(
-                              padding: const EdgeInsets.all(20),
+                              padding: EdgeInsets.all(Responsive.padding(context, 16)),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
@@ -407,60 +474,68 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                         Text(
                                           widget.rideDetails['vehicleNumber'] ?? 'TS02E1655',
                                           style: TextStyle(
-                                            fontSize: 22,
+                                            fontSize: Responsive.fontSize(context, 20),
                                             fontWeight: FontWeight.bold,
                                             color: _appTheme.textColor,
                                             letterSpacing: 0.5,
                                           ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 4),
+                                        SizedBox(height: Responsive.spacing(context, 4)),
                                         // Vehicle model
                                         Text(
                                           widget.rideDetails['vehicleModel'] ?? 'Hero Honda',
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: Responsive.fontSize(context, 14),
                                             color: _appTheme.textGrey,
                                           ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 16),
+                                        SizedBox(height: Responsive.spacing(context, 12)),
                                         // Driver name and rating
                                         Row(
                                           children: [
-                                            Text(
-                                              'Sri Akshay',
-                                              style: TextStyle(
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.w600,
-                                                color: _appTheme.textColor,
+                                            Flexible(
+                                              child: Text(
+                                                'Sri Akshay',
+                                                style: TextStyle(
+                                                  fontSize: Responsive.fontSize(context, 16),
+                                                  fontWeight: FontWeight.w600,
+                                                  color: _appTheme.textColor,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
-                                            const Text('⭐', style: TextStyle(fontSize: 16)),
-                                            const SizedBox(width: 4),
-                                            const Text(
+                                            SizedBox(width: Responsive.spacing(context, 6)),
+                                            Text('⭐', style: TextStyle(fontSize: Responsive.fontSize(context, 14))),
+                                            SizedBox(width: Responsive.spacing(context, 4)),
+                                            Text(
                                               '4.9',
                                               style: TextStyle(
-                                                fontSize: 16,
+                                                fontSize: Responsive.fontSize(context, 14),
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 16),
+                                        SizedBox(height: Responsive.spacing(context, 12)),
                                         // Call and Message buttons
                                         Row(
                                           children: [
                                             // Call button - Green
                                             ElevatedButton.icon(
                                               onPressed: () => _makePhoneCall('+919876543210'),
-                                              icon: const Icon(Icons.phone, size: 18),
-                                              label: const Text('call'),
+                                              icon: Icon(Icons.phone, size: Responsive.iconSize(context, 18)),
+                                              label: Text(
+                                                'Call',
+                                                style: TextStyle(fontSize: Responsive.fontSize(context, 14)),
+                                              ),
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.green,
                                                 foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                  vertical: 12,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: Responsive.padding(context, 16),
+                                                  vertical: Responsive.padding(context, 10),
                                                 ),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius: BorderRadius.circular(25),
@@ -468,25 +543,29 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                                 elevation: 0,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
+                                            SizedBox(width: Responsive.spacing(context, 12)),
                                             // Message button - Light
                                             Expanded(
                                               child: OutlinedButton.icon(
                                                 onPressed: () => _sendMessage('+919876543210'),
-                                                icon: Icon(Icons.message_outlined, size: 18, color: _appTheme.textGrey),
+                                                icon: Icon(
+                                                  Icons.message_outlined,
+                                                  size: Responsive.iconSize(context, 18),
+                                                  color: _appTheme.textGrey,
+                                                ),
                                                 label: Text(
                                                   'Send msg to Akshay',
                                                   style: TextStyle(
                                                     color: _appTheme.textGrey,
-                                                    fontSize: 13,
+                                                    fontSize: Responsive.fontSize(context, 13),
                                                   ),
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
                                                 style: OutlinedButton.styleFrom(
                                                   side: BorderSide(color: Colors.grey.shade300),
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 12,
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: Responsive.padding(context, 12),
+                                                    vertical: Responsive.padding(context, 10),
                                                   ),
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.circular(25),
@@ -499,30 +578,30 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  SizedBox(width: Responsive.spacing(context, 12)),
                                   // Driver photo - Right side
                                   CircleAvatar(
-                                    radius: 45,
+                                    radius: Responsive.spacing(context, 30),
                                     backgroundColor: Colors.grey.shade300,
                                     backgroundImage: const AssetImage('assets/images/driver_placeholder.png'),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            SizedBox(height: Responsive.spacing(context, 20)),
 
                             // Ride Details
                             Text(
                               'Ride Details',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: Responsive.fontSize(context, 16),
                                 fontWeight: FontWeight.w600,
                                 color: _appTheme.textColor,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: smallSpacing),
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: EdgeInsets.all(Responsive.padding(context, 14)),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
@@ -536,7 +615,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                     widget.pickupLocation,
                                     'Pickup',
                                   ),
-                                  const SizedBox(height: 16),
+                                  SizedBox(height: smallSpacing),
                                   _buildLocationRow(
                                     Icons.circle,
                                     _appTheme.brandRed,
@@ -546,7 +625,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: mediumSpacing),
                           ],
                         ),
                       ),
@@ -560,26 +639,30 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                       // Promotional Banner
                       Container(
                         width: double.infinity,
-                        height: 32,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Responsive.padding(context, 12),
+                          vertical: Responsive.spacing(context, 8),
+                        ),
                         color: Colors.green,
                         alignment: Alignment.center,
-                        child: const Text(
-                          '"Transparent fares and zero hidden charges - only on Pikkar."',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Transparent fares and zero hidden charges - only on Pikkar.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: bannerFontSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
                         ),
                       ),
 
                       // Payment Method and Cancel Ride Button in same row
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(horizontalPadding),
                         decoration: BoxDecoration(
                           color: _appTheme.cardColor,
                           border: Border(
@@ -599,28 +682,28 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Cash',
                                     style: TextStyle(
                                       color: Colors.black,
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: Responsive.fontSize(context, 14),
                                     ),
                                   ),
                                   Text(
                                     ' | ',
                                     style: TextStyle(
                                       color: Colors.black.withOpacity(0.8),
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: Responsive.fontSize(context, 13),
                                     ),
                                   ),
-                                  const Text(
+                                  Text(
                                     'Pay to Driver',
                                     style: TextStyle(
                                       color: Colors.black,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: Responsive.fontSize(context, 13),
                                     ),
                                   ),
                                 ],
@@ -630,18 +713,24 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                 onPressed: _handleCancelRide,
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(color: _appTheme.brandRed, width: 2),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: Responsive.padding(context, 20),
+                                    vertical: Responsive.padding(context, 12),
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                   backgroundColor: Colors.white,
-                                  minimumSize: const Size(0, 50),
+                                  minimumSize: Size(
+                                    Responsive.spacing(context, 100),
+                                    Responsive.spacing(context, 40),
+                                  ),
                                 ),
                                 child: Text(
                                   'Cancel Ride',
                                   style: TextStyle(
                                     color: _appTheme.brandRed,
-                                    fontSize: 16,
+                                    fontSize: Responsive.fontSize(context, 15),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

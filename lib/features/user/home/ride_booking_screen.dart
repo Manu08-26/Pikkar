@@ -694,7 +694,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
               right: 0,
               bottom: 0,
               child: Container(
-                height: MediaQuery.of(context).size.height * 0.48,
+                height: MediaQuery.of(context).size.height * 0.55,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: const BorderRadius.only(
@@ -977,7 +977,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
           left: isSelected ? 0 : 4,
           right: isSelected ? 0 : 4,
         ),
-        padding: EdgeInsets.all(isSelected ? 14 : 12),
+        padding: EdgeInsets.all(isSelected ? 8 : 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),

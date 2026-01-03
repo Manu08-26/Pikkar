@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/responsive.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -34,6 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final logoSize = Responsive.wp(context, 53.3); // ~200px on base design
     return Scaffold(
       backgroundColor: _appTheme.brandRed,
       body: SafeArea(
@@ -44,15 +46,15 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Center(
             child: Image.asset(
               'assets/logo.png',
-              width: 200,
-              height: 200,
+              width: logoSize,
+              height: logoSize,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
                 // Fallback to text if image not found
                 return Text(
                   '',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: Responsive.fontSize(context, 32),
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     letterSpacing: 2,
