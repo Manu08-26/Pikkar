@@ -288,7 +288,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
     final horizontalPadding = Responsive.padding(context, 20);
     final smallSpacing = Responsive.spacing(context, 12);
     final mediumSpacing = Responsive.spacing(context, 16);
-    final bannerFontSize = Responsive.fontSize(context, 12);
+    final bannerFontSize = Responsive.fontSize(context, 10);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -474,7 +474,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                         Text(
                                           widget.rideDetails['vehicleNumber'] ?? 'TS02E1655',
                                           style: TextStyle(
-                                            fontSize: Responsive.fontSize(context, 20),
+                                            fontSize: Responsive.fontSize(context, 18),
                                             fontWeight: FontWeight.bold,
                                             color: _appTheme.textColor,
                                             letterSpacing: 0.5,
@@ -486,7 +486,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                         Text(
                                           widget.rideDetails['vehicleModel'] ?? 'Hero Honda',
                                           style: TextStyle(
-                                            fontSize: Responsive.fontSize(context, 14),
+                                            fontSize: Responsive.fontSize(context, 12),
                                             color: _appTheme.textGrey,
                                           ),
                                           overflow: TextOverflow.ellipsis,
@@ -499,7 +499,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                               child: Text(
                                                 'Sri Akshay',
                                                 style: TextStyle(
-                                                  fontSize: Responsive.fontSize(context, 16),
+                                                  fontSize: Responsive.fontSize(context, 14),
                                                   fontWeight: FontWeight.w600,
                                                   color: _appTheme.textColor,
                                                 ),
@@ -512,7 +512,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
                                             Text(
                                               '4.9',
                                               style: TextStyle(
-                                                fontSize: Responsive.fontSize(context, 14),
+                                                fontSize: Responsive.fontSize(context, 12),
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),

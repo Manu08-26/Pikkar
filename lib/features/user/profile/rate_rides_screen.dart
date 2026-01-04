@@ -143,7 +143,7 @@ class _RateRidesScreenState extends State<RateRidesScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: _appTheme.brandRed,
+                  color: Colors.black,
                 ),
               ),
             ],

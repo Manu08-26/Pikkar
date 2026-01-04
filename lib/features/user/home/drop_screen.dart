@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'recent_locations_store.dart';
 import 'ride_booking_screen.dart';
 import 'parcel_drop_details_screen.dart';
 import '../../../core/theme/app_theme.dart';
@@ -25,12 +26,18 @@ class DropScreen extends StatefulWidget {
 }
 
 class _DropScreenState extends State<DropScreen> {
+  LatLng? _selectedLatLng;
+String _selectedPlaceName = '';
+  bool _showAddStopRow = false; // Initially hidden, shown when "Add stops" clicked
+
   final AppTheme _appTheme = AppTheme();
   GoogleMapController? _mapController;
   final TextEditingController _pickupSearchController = TextEditingController();
   final TextEditingController _dropSearchController = TextEditingController();
+  final FocusNode _pickupFocusNode = FocusNode();
   List<Map<String, dynamic>> _pickupSearchResults = [];
   List<Map<String, dynamic>> _dropSearchResults = [];
+  bool _pickupUserInteracted = false;
   bool _isSearchingPickup = false;
   bool _isSearchingDrop = false;
   bool _showPickupSearch = false;
@@ -40,6 +47,7 @@ class _DropScreenState extends State<DropScreen> {
   LatLng? _selectedLocation;
   String? _pickupLocationName;
   String? _selectedLocationName;
+  final List<Map<String, String>> _recentDrops = [];
   String _currentLocationName = "Current Location";
   String _selectedForMe = "For me";
   static const String _apiKey = 'AIzaSyAT3wIjV73qVXPAlgkyifnns38GztnbNF4';
@@ -51,6 +59,7 @@ class _DropScreenState extends State<DropScreen> {
     _initializeLocation();
     _pickupSearchController.addListener(() => _onPickupSearchChanged());
     _dropSearchController.addListener(() => _onDropSearchChanged());
+    _loadRecentDrops();
   }
 
   @override
@@ -59,6 +68,7 @@ class _DropScreenState extends State<DropScreen> {
     _mapController?.dispose();
     _pickupSearchController.dispose();
     _dropSearchController.dispose();
+    _pickupFocusNode.dispose();
     super.dispose();
   }
 
@@ -66,7 +76,14 @@ class _DropScreenState extends State<DropScreen> {
     setState(() {});
   }
 
+  void _loadRecentDrops() {
+    _recentDrops
+      ..clear()
+      ..addAll(RecentLocationsStore.items);
+  }
+
   void _onPickupSearchChanged() {
+    if (!_pickupUserInteracted) return;
     if (_pickupSearchController.text.isNotEmpty) {
       setState(() {
         _showPickupSearch = true;
@@ -120,6 +137,9 @@ class _DropScreenState extends State<DropScreen> {
             setState(() {
               _pickupLocation = LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
               _pickupLocationName = _currentLocationName;
+              if (_pickupSearchController.text.isEmpty) {
+                _pickupSearchController.text = _currentLocationName;
+              }
             });
           }
         });
@@ -135,6 +155,29 @@ class _DropScreenState extends State<DropScreen> {
         CameraUpdate.newLatLngZoom(
           LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
           14.0,
+        ),
+      );
+    }
+  }
+
+  Future<void> _setPickupToCurrent() async {
+    if (_currentLocation == null) {
+      await _initializeLocation();
+    }
+    if (_currentLocation != null) {
+      setState(() {
+        _pickupLocation = LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
+        _pickupLocationName = _currentLocationName;
+        _pickupSearchController.text = _currentLocationName;
+        _pickupUserInteracted = true;
+        _showPickupSearch = false;
+        _showDropSearch = false;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Unable to fetch current location'),
+          backgroundColor: _appTheme.brandRed,
         ),
       );
     }
@@ -297,6 +340,8 @@ class _DropScreenState extends State<DropScreen> {
       if (data['status'] == 'OK' && mounted) {
         final location = data['result']['geometry']['location'];
         final latLng = LatLng(location['lat'], location['lng']);
+        final resolvedName = data['result']['name'] ?? description;
+        final resolvedAddress = data['result']['formatted_address'] ?? description;
 
         setState(() {
           if (isPickup) {
@@ -305,22 +350,25 @@ class _DropScreenState extends State<DropScreen> {
             _pickupSearchController.text = description;
             _pickupSearchResults = [];
             _showPickupSearch = false;
+            _pickupUserInteracted = true;
           } else {
+            print('DEBUG: Setting _selectedLocation = $latLng');
+            print('DEBUG: Setting _selectedLocationName = $resolvedName');
             _selectedLocation = latLng;
-            _selectedLocationName = description;
-            _dropSearchController.text = description;
+            _selectedLocationName = resolvedName;
+            _dropSearchController.text = resolvedName;
             _dropSearchResults = [];
             _showDropSearch = false;
-            
-            // For Parcel/Delivery, show contact details popup
-            if (widget.enableParcelDropDetails &&
-                (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
-              Future.delayed(const Duration(milliseconds: 300), () {
-                _showParcelDropDetailsPopup();
-              });
-            }
+            _addRecentDrop(name: resolvedName, address: resolvedAddress);
           }
         });
+        
+        if (!isPickup) {
+          print('DEBUG: About to call _handleDropSelected');
+          print('DEBUG: _selectedLocation = $_selectedLocation');
+          print('DEBUG: _pickupLocation = $_pickupLocation');
+          _handleDropSelected();
+        }
 
         if (_mapController != null) {
           _mapController!.animateCamera(
@@ -333,50 +381,31 @@ class _DropScreenState extends State<DropScreen> {
     }
   }
 
-  void _selectPickupOnMap() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DropMapLocationScreen(
-          onLocationSelected: (latLng, name) {
-            setState(() {
-              _pickupLocation = latLng;
-              _pickupLocationName = name;
-            });
-          },
-        ),
-      ),
-    );
-  }
-
   void _selectDropOnMap() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => DropMapLocationScreen(
+          apiKey: _apiKey,
           onLocationSelected: (latLng, name) {
             setState(() {
               _selectedLocation = latLng;
               _selectedLocationName = name;
             });
+            _addRecentDrop(name: name, address: name);
             
-            // For Parcel/Delivery, show contact details popup
-            if (widget.enableParcelDropDetails &&
-                (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
-              Future.delayed(const Duration(milliseconds: 300), () {
-                _showParcelDropDetailsPopup();
-              });
-            }
+            _addRecentDrop(name: name, address: name);
+            _handleDropSelected();
           },
         ),
       ),
     );
   }
 
-  void _showParcelDropDetailsPopup() {
+  Future<void> _showParcelDropDetailsPopup() async {
     if (_selectedLocationName == null) return;
     
-    showModalBottomSheet(
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -388,26 +417,52 @@ class _DropScreenState extends State<DropScreen> {
     );
   }
 
-  void _proceed() {
-    if (_selectedLocationName != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RideBookingScreen(
-            pickupLocation: _pickupLocationName ?? 'Current Location',
-            dropLocation: _selectedLocationName!,
-            rideType: widget.rideType,
-          ),
-        ),
-      );
-    } else {
+  void _goToRideBooking() {
+    print('DEBUG: _goToRideBooking called');
+    print('DEBUG: _pickupLocation = $_pickupLocation');
+    print('DEBUG: _selectedLocation = $_selectedLocation');
+    print('DEBUG: _pickupLocationName = $_pickupLocationName');
+    print('DEBUG: _selectedLocationName = $_selectedLocationName');
+    
+    if (_selectedLocationName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select a drop location'),
+          content: const Text('Please select a drop location'),
           backgroundColor: _appTheme.brandRed,
         ),
       );
+      return;
     }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RideBookingScreen(
+          pickupLocation: _pickupLocationName ?? 'Current Location',
+          dropLocation: _selectedLocationName!,
+          rideType: widget.rideType,
+          // pickupLatLng: _pickupLocation,
+          // dropLatLng: _selectedLocation,
+        ),
+      ),
+    );
+  }
+
+  void _handleDropSelected() {
+    if (widget.enableParcelDropDetails &&
+        (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+      Future.delayed(const Duration(milliseconds: 300), () async {
+        await _showParcelDropDetailsPopup();
+        _goToRideBooking();
+      });
+    } else {
+      _goToRideBooking();
+    }
+  }
+
+  void _addRecentDrop({required String name, required String address}) {
+    RecentLocationsStore.add(name, address);
+    _loadRecentDrops();
   }
 
   @override
@@ -456,111 +511,179 @@ class _DropScreenState extends State<DropScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Pickup Location
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            _showPickupSearch = true;
-                            _showDropSearch = false;
-                          });
-                        },
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Green icon for pickup
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                shape: BoxShape.circle,
+                      // Pickup Location (editable)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Green icon for pickup
+                          Container(
+                            width: 18,
+                            height: 18,
+                            decoration: const BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.circle,
+                                color: Colors.white,
+                                size: 8,
                               ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.circle,
-                                  color: Colors.white,
-                                  size: 8,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _pickupSearchController,
+                              focusNode: _pickupFocusNode,
+                              decoration: InputDecoration(
+                                hintText: 'Pickup location',
+                                hintStyle: TextStyle(
+                                  color: _appTheme.textGrey,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                isDense: true,
+                              ),
+                              style: TextStyle(
+                                color: _appTheme.textColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _pickupUserInteracted = true;
+                                  _showPickupSearch = true;
+                                  _showDropSearch = false;
+                                });
+                              },
+                            ),
+                          ),
+                          // Current location icon button
+                          IconButton(
+                            icon: const Icon(
+                              Icons.my_location,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                            onPressed: _setPickupToCurrent,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Add Stop field (black diamond with number 1) - conditionally shown
+                      if (_showAddStopRow)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(width: 10),
+                            // Black diamond icon with number 1
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: const BoxDecoration(
+                                color: Colors.black,
+                                shape: BoxShape.rectangle,
+                              ),
+                              transform: Matrix4.rotationZ(0.785398), // 45 degrees
+                              child: Transform.rotate(
+                                angle: -0.785398, // Counter-rotate the text
+                                child: const Center(
+                                  child: Text(
+                                    '1',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 12),
+                          
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _pickupLocationName ?? _currentLocationName,
-                                    style: TextStyle(
-                                      color: _appTheme.textColor,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 7),
+                                child: TextField(
+                                  controller: _dropSearchController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Add Stop',
+                                    hintStyle: TextStyle(
+                                      color: _appTheme.textGrey,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                    isDense: true,
                                   ),
-                                ],
+                                  style: TextStyle(
+                                    color: _appTheme.textColor,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      _showDropSearch = true;
+                                      _showPickupSearch = false;
+                                    });
+                                  },
+                                ),
                               ),
+                            ),
+                            // Menu icon
+                            IconButton(
+                              icon: const Icon(
+                                Icons.menu,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                // Handle menu action
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                            const SizedBox(width: 8),
+                            // Close icon - removes the entire row
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _showAddStopRow = false; // Hide the row
+                                  _dropSearchController.clear();
+                                  _selectedLocation = null;
+                                  _selectedLocationName = null;
+                                  _showDropSearch = false;
+                                });
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),
-                      ),
                       
-                      // Pickup Search Results (shown below the card)
-                      if (_showPickupSearch && _pickupSearchResults.isNotEmpty)
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _appTheme.dividerColor,
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: _pickupSearchResults.map((result) {
-                              return InkWell(
-                                onTap: () => _getPlaceDetails(
-                                  result['place_id'],
-                                  result['description'],
-                                  true,
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.location_on,
-                                        color: _appTheme.brandRed,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          result['place_name'] ?? result['description'],
-                                          style: TextStyle(
-                                           color: _appTheme.textColor,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      // Drop Location
+                      if (_showAddStopRow) const SizedBox(height: 16),
+                      
+                      // Drop Location (editable)
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Red icon for drop with white dot
+                          // Orange/Red icon for drop
                           Container(
-                            width: 16,
-                            height: 16,
+                            width: 18,
+                            height: 18,
                             decoration: BoxDecoration(
                               color: _appTheme.brandRed,
                               shape: BoxShape.circle,
@@ -579,17 +702,19 @@ class _DropScreenState extends State<DropScreen> {
                               controller: _dropSearchController,
                               decoration: InputDecoration(
                                 hintText: 'Drop location',
-                                hintStyle: TextStyle(color: _appTheme.textColor,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,),
+                                hintStyle: TextStyle(
+                                  color: _appTheme.textGrey,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.zero,
                                 isDense: true,
                               ),
                               style: TextStyle(
                                 color: _appTheme.textColor,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
                               ),
                               onTap: () {
                                 setState(() {
@@ -644,13 +769,10 @@ class _DropScreenState extends State<DropScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          // Add stops functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Add stops feature coming soon'),
-                              backgroundColor: _appTheme.brandRed,
-                            ),
-                          );
+                          // Show the Add Stop row when button is clicked
+                          setState(() {
+                            _showAddStopRow = true;
+                          });
                         },
                         icon: Icon(
                           Icons.add,
@@ -679,6 +801,115 @@ class _DropScreenState extends State<DropScreen> {
                   ],
                 ),
               ),
+
+              // Pickup Search Results (shown after action buttons)
+              if (_showPickupSearch && _pickupSearchResults.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _appTheme.dividerColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: _pickupSearchResults.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final result = entry.value;
+                        return Column(
+                          children: [
+                            InkWell(
+                              onTap: () => _getPlaceDetails(
+                                result['place_id'],
+                                result['description'],
+                                true,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: _appTheme.brandRed,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.circle,
+                                            color: Colors.white,
+                                            size: 8,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            result['place_name'] ?? result['description'],
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.black,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Placeholder distance line for alignment with drop layout
+                                          const SizedBox(height: 16),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            result['description'],
+                                            style: TextStyle(
+                                              color: _appTheme.textGrey,
+                                              fontSize: 12,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.favorite_border,
+                                        color: _appTheme.textGrey,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {},
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (index < _pickupSearchResults.length - 1)
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: Colors.grey.shade300,
+                                indent: 0,
+                                endIndent: 0,
+                              ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
 
               // Drop Search Results (shown after buttons)
               if (_showDropSearch && _dropSearchResults.isNotEmpty)
@@ -711,16 +942,15 @@ class _DropScreenState extends State<DropScreen> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Circ
-                                    //le icon (red with white center) - centered vertically
+                                    // Circle icon (black with white center) - centered vertically
                                     Padding(padding: const EdgeInsets.only(top: 6), child: 
                                      Align(
                                       alignment: Alignment.center,
                                       child: Container(
                                         width: 12,
                                         height: 12,
-                                        decoration: BoxDecoration(
-                                          color: _appTheme.brandRed,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black,
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Center(
@@ -812,127 +1042,42 @@ class _DropScreenState extends State<DropScreen> {
 
               const SizedBox(height: 16),
 
-              // Recent Locations List
-              if (!_showPickupSearch && !_showDropSearch)
+              // Recent Locations List (real recent selections)
+              if (!_showPickupSearch && !_showDropSearch && _recentDrops.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
-                    children: [
-                      // Recent Locations
-                      _recentLocationItem(
-                        'Lulu Mall',
-                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                        isFavorited: true,
-                        onTap: () {
-                          setState(() {
-                            _selectedLocationName =
-                                'Lulu Mall, Kondapur, Hyderabad, Telangana';
-                          });
-                          // For Parcel/Delivery, show contact details popup
-                          if (widget.enableParcelDropDetails &&
-                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              _showParcelDropDetailsPopup();
-                            });
-                          }
-                        },
-                      ),
-                      _recentLocationItem(
-                        'Hotal Grand Sitara',
-                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                        isFavorited: false,
-                        onTap: () {
-                          setState(() {
-                            _selectedLocationName =
-                                'Hotel Grand Sitara, Banjara Hills, Hyderabad, Telangana';
-                          });
-                          // For Parcel/Delivery, show contact details popup
-                          if (widget.enableParcelDropDetails &&
-                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              _showParcelDropDetailsPopup();
-                            });
-                          }
-                        },
-                      ),
-                      _recentLocationItem(
-                        'GVK Mall',
-                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                        isFavorited: false,
-                        onTap: () {
-                          setState(() {
-                            _selectedLocationName = 'GVK Mall, Banjara Hills, Hyderabad';
-                          });
-                          // For Parcel/Delivery, show contact details popup
-                          if (widget.enableParcelDropDetails &&
-                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              _showParcelDropDetailsPopup();
-                            });
-                          }
-                        },
-                      ),
-                      _recentLocationItem(
-                        'Metro Convention Classic',
-                        '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                        isFavorited: false,
-                        onTap: () {
-                          setState(() {
-                            _selectedLocationName =
-                                'Metro Convention Classic, Hyderabad';
-                          });
-                          // For Parcel/Delivery, show contact details popup
-                          if (widget.enableParcelDropDetails &&
-                              (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              _showParcelDropDetailsPopup();
-                            });
-                          }
-                        },
-                      ),
-                    ],
+                    children: _recentDrops
+                        .map(
+                          (item) => _recentLocationItem(
+                            item['name'] ?? '',
+                            item['address'] ?? '',
+                            isFavorited: false,
+                            onTap: () {
+                              setState(() {
+                                _selectedLocationName = item['name'];
+                              });
+                              if (widget.enableParcelDropDetails &&
+                                  (widget.rideType == 'Parcel' || widget.rideType == 'Delivery')) {
+                                Future.delayed(const Duration(milliseconds: 300), () async {
+                                  await _showParcelDropDetailsPopup();
+                                  _goToRideBooking();
+                                });
+                              } else {
+                                _goToRideBooking();
+                              }
+                            },
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
 
-              const SizedBox(height: 100), // Space for proceed button
+              const SizedBox(height: 16),
             ],
           ),
         ),
-        bottomNavigationBar: _selectedLocationName != null
-            ? Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    top: BorderSide(color: _appTheme.dividerColor, width: 1),
-                  ),
-                ),
-                child: SafeArea(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _proceed,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _appTheme.brandRed,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Proceed',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            : null,
+        bottomNavigationBar: null,
       ),
     );
   }
@@ -1080,8 +1225,9 @@ class DashedLinePainter extends CustomPainter {
 // Map Location Screen for selecting location on map
 class DropMapLocationScreen extends StatefulWidget {
   final Function(LatLng, String)? onLocationSelected;
+  final String apiKey;
 
-  const DropMapLocationScreen({super.key, this.onLocationSelected});
+  const DropMapLocationScreen({super.key, this.onLocationSelected, required this.apiKey});
 
   @override
   State<DropMapLocationScreen> createState() => _DropMapLocationScreenState();
@@ -1091,47 +1237,252 @@ class _DropMapLocationScreenState extends State<DropMapLocationScreen> {
   GoogleMapController? _mapController;
   LatLng? _selectedLocation;
   String? _selectedLocationName;
+  final TextEditingController _mapSearchController = TextEditingController();
+  final FocusNode _mapSearchFocus = FocusNode();
+  List<Map<String, dynamic>> _mapSearchResults = [];
+  bool _isSearchingMap = false;
+
+  Future<void> _searchPlacesOnMap(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _mapSearchResults = [];
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingMap = true;
+    });
+
+    try {
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(query)}&key=${widget.apiKey}',
+      );
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'OK') {
+        final predictions = List<Map<String, dynamic>>.from(data['predictions']);
+        // Enrich with lat/lng by fetching details in parallel
+        final List<Map<String, dynamic>> enriched = [];
+        for (final p in predictions) {
+          final placeId = p['place_id'] as String?;
+          if (placeId == null) continue;
+          final detail = await _fetchPlaceLatLng(placeId);
+          if (detail != null) {
+            enriched.add({
+              'place_id': placeId,
+              'description': p['description'],
+              'place_name': p['structured_formatting']?['main_text'],
+              'lat': detail['lat'],
+              'lng': detail['lng'],
+            });
+          }
+        }
+        setState(() {
+          _mapSearchResults = enriched;
+          _isSearchingMap = false;
+        });
+      } else {
+        setState(() {
+          _mapSearchResults = [];
+          _isSearchingMap = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _mapSearchResults = [];
+        _isSearchingMap = false;
+      });
+    }
+  }
+
+  Future<Map<String, double>?> _fetchPlaceLatLng(String placeId) async {
+    try {
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=${widget.apiKey}',
+      );
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        final loc = data['result']['geometry']['location'];
+        return {'lat': (loc['lat'] as num).toDouble(), 'lng': (loc['lng'] as num).toDouble()};
+      }
+    } catch (_) {}
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Select Location'),
+        title: const Text('Select Location'),
         actions: [
           if (_selectedLocation != null)
             TextButton(
               onPressed: () {
-                if (widget.onLocationSelected != null && _selectedLocation != null && _selectedLocationName != null) {
+                if (widget.onLocationSelected != null &&
+                    _selectedLocation != null &&
+                    _selectedLocationName != null) {
                   widget.onLocationSelected!(_selectedLocation!, _selectedLocationName!);
                 }
                 Navigator.pop(context);
               },
-              child: Text('Done'),
+              child: const Text('Done'),
             ),
         ],
       ),
-      body: GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: LatLng(17.3850, 78.4867), // Hyderabad
-          zoom: 14,
-        ),
-        onMapCreated: (controller) {
-          _mapController = controller;
-        },
-        onTap: (latLng) {
-          setState(() {
-            _selectedLocation = latLng;
-            _selectedLocationName = '${latLng.latitude}, ${latLng.longitude}';
-          });
-        },
-        markers: _selectedLocation != null
-            ? {
-                Marker(
-                  markerId: MarkerId('selected'),
-                  position: _selectedLocation!,
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(17.3850, 78.4867), // Hyderabad
+              zoom: 14,
+            ),
+            onMapCreated: (controller) {
+              _mapController = controller;
+            },
+            onTap: (latLng) {
+              setState(() {
+                _selectedLocation = latLng;
+                _selectedLocationName = '${latLng.latitude}, ${latLng.longitude}';
+              });
+            },
+            markers: _selectedLocation != null
+                ? {
+                    Marker(
+                      markerId: const MarkerId('selected'),
+                      position: _selectedLocation!,
+                    ),
+                  }
+                : {},
+          ),
+
+          // Search box over map
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Column(
+              children: [
+                Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  child: TextField(
+                    controller: _mapSearchController,
+                    focusNode: _mapSearchFocus,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search location',
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: _searchPlacesOnMap,
+                  ),
                 ),
-              }
-            : {},
+                if (_isSearchingMap) const LinearProgressIndicator(minHeight: 2),
+                if (_mapSearchResults.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: _mapSearchResults.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final result = entry.value;
+                        return Column(
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                final lat = result['lat'] as double?;
+                                final lng = result['lng'] as double?;
+                                final name = result['place_name'] ?? result['description'] ?? '';
+                                if (lat != null && lng != null) {
+                                  setState(() {
+                                    _selectedLocation = LatLng(lat, lng);
+                                    _selectedLocationName = name;
+                                    _mapSearchResults.clear();
+                                    _mapSearchController.text = name;
+                                  });
+                                  _mapController?.animateCamera(
+                                    CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15),
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(Icons.location_on, color: Colors.green, size: 20),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            result['place_name'] ?? result['description'] ?? '',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            result['description'] ?? '',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 12,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.favorite_border,
+                                        color: Colors.grey.shade500,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {},
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (index < _mapSearchResults.length - 1)
+                              Divider(height: 1, color: Colors.grey.shade300),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

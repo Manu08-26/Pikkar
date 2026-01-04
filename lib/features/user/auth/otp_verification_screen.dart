@@ -168,33 +168,33 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                       SizedBox(height: Responsive.spacing(context, 20)),
 
-                      // Title
-                      Text(
-                        'Enter OTP',
-                        style: TextStyle(
+                // Title
+                Text(
+                  'Enter OTP',
+                  style: TextStyle(
                           fontSize: Responsive.fontSize(context, 32),
-                          fontWeight: FontWeight.bold,
-                          color: _appTheme.textColor,
-                        ),
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: _appTheme.textColor,
+                  ),
+                ),
                       SizedBox(height: Responsive.spacing(context, 8)),
 
-                      // Description
-                      Text(
-                        'We\'ve sent a 6-digit OTP to ${widget.phoneNumber}',
-                        style: TextStyle(
+                // Description
+                Text(
+                  'We\'ve sent a 6-digit OTP to ${widget.phoneNumber}',
+                  style: TextStyle(
                           fontSize: Responsive.fontSize(context, 14),
-                          color: _appTheme.textGrey,
-                        ),
-                      ),
+                    color: _appTheme.textGrey,
+                  ),
+                ),
                       SizedBox(height: Responsive.spacing(context, 40)),
 
-                      // OTP Input Fields
+                // OTP Input Fields
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final availableWidth = constraints.maxWidth;
@@ -203,127 +203,127 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                           final spacingBetween = (availableWidth - totalFieldsWidth) / 5;
                           
                           return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: List.generate(6, (index) {
-                              return SizedBox(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(6, (index) {
+                    return SizedBox(
                                 width: fieldWidth,
                                 height: Responsive.hp(context, 6.9), // ~56px on base
-                                child: TextField(
-                                  controller: _otpControllers[index],
-                                  focusNode: _focusNodes[index],
-                                  textAlign: TextAlign.center,
-                                  keyboardType: TextInputType.number,
-                                  maxLength: 1,
-                                  style: TextStyle(
+                      child: TextField(
+                        controller: _otpControllers[index],
+                        focusNode: _focusNodes[index],
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        maxLength: 1,
+                        style: TextStyle(
                                     fontSize: Responsive.fontSize(context, 20),
-                                    fontWeight: FontWeight.bold,
-                                    color: _appTheme.textColor,
-                                  ),
-                                  decoration: InputDecoration(
-                                    counterText: '',
-                                    filled: true,
-                                    fillColor: _appTheme.iconBgColor,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: _appTheme.dividerColor,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: _appTheme.dividerColor,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: _appTheme.brandRed,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                  onChanged: (value) => _handleOTPInput(index, value),
-                                ),
-                              );
-                            }),
+                          fontWeight: FontWeight.bold,
+                          color: _appTheme.textColor,
+                        ),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          filled: true,
+                          fillColor: _appTheme.iconBgColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: _appTheme.dividerColor,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: _appTheme.dividerColor,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: _appTheme.brandRed,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (value) => _handleOTPInput(index, value),
+                      ),
+                    );
+                  }),
                           );
                         },
-                      ),
+                ),
                       SizedBox(height: Responsive.spacing(context, 32)),
 
-                      // Verify Button
-                      SizedBox(
-                        width: double.infinity,
+                // Verify Button
+                SizedBox(
+                  width: double.infinity,
                         height: Responsive.hp(context, 6.9),
-                        child: ElevatedButton(
-                          onPressed: _isVerifying ? null : _verifyOTP,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _appTheme.brandRed,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            disabledBackgroundColor: _appTheme.brandRed.withOpacity(0.6),
-                          ),
-                          child: _isVerifying
-                              ? SizedBox(
+                  child: ElevatedButton(
+                    onPressed: _isVerifying ? null : _verifyOTP,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _appTheme.brandRed,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      disabledBackgroundColor: _appTheme.brandRed.withOpacity(0.6),
+                    ),
+                    child: _isVerifying
+                        ? SizedBox(
                                   width: Responsive.iconSize(context, 24),
                                   height: Responsive.iconSize(context, 24),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : Text(
-                                  'Verify',
-                                  style: TextStyle(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'Verify',
+                            style: TextStyle(
                                     fontSize: Responsive.fontSize(context, 16),
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                      SizedBox(height: Responsive.spacing(context, 24)),
+
+                // Resend OTP
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                            Flexible(
+                              child: Text(
+                        'Didn\'t receive OTP? ',
+                        style: TextStyle(
+                                  fontSize: Responsive.fontSize(context, 14),
+                          color: _appTheme.textGrey,
                                 ),
                         ),
                       ),
-                      SizedBox(height: Responsive.spacing(context, 24)),
-
-                      // Resend OTP
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'Didn\'t receive OTP? ',
-                                style: TextStyle(
-                                  fontSize: Responsive.fontSize(context, 14),
-                                  color: _appTheme.textGrey,
-                                ),
-                              ),
-                            ),
-                            if (_canResend)
-                              InkWell(
-                                onTap: _resendOTP,
-                                child: Text(
-                                  'Resend',
-                                  style: TextStyle(
+                      if (_canResend)
+                        InkWell(
+                          onTap: _resendOTP,
+                          child: Text(
+                            'Resend',
+                            style: TextStyle(
                                     fontSize: Responsive.fontSize(context, 14),
-                                    fontWeight: FontWeight.w600,
-                                    color: _appTheme.brandRed,
-                                  ),
-                                ),
-                              )
-                            else
+                              fontWeight: FontWeight.w600,
+                              color: _appTheme.brandRed,
+                            ),
+                          ),
+                        )
+                      else
                               Flexible(
                                 child: Text(
-                                  'Resend in ${_resendTimer}s',
-                                  style: TextStyle(
+                          'Resend in ${_resendTimer}s',
+                          style: TextStyle(
                                     fontSize: Responsive.fontSize(context, 14),
-                                    color: _appTheme.textGrey,
-                                  ),
+                            color: _appTheme.textGrey,
+                          ),
                                 ),
                               ),
                           ],

@@ -178,7 +178,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           color: _appTheme.iconBgColor,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: _appTheme.brandRed, size: 20),
+        child: Icon(icon, color:Colors.white, size: 20),
       ),
       title: Text(
         title,

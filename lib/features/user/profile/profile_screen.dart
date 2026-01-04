@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../auth/login_screen.dart';
-import '../home/home_screen.dart';
 import '../services/services_screen.dart';
 import '../history/history_screen.dart';
 import '../common/notifications.dart';
-import 'app_settings_screen.dart';
 import 'share_app_screen.dart';
 import 'rate_rides_screen.dart';
 import 'wallet_screen.dart';
@@ -521,18 +519,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_outlined),
+            activeIcon: Icon(Icons.grid_view),
             label: 'Services',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history),
             label: 'History',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],

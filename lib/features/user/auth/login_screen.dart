@@ -111,218 +111,218 @@ class _LoginScreenState extends State<LoginScreen> {
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                       SizedBox(height: Responsive.hp(context, 7.4)),
 
-                      /// APP BRANDING
-                      Center(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/logo_red.png',
+                /// APP BRANDING
+                Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/logo_red.png',
                               width: Responsive.wp(context, 40),
                               height: Responsive.hp(context, 7.4),
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Text(
-                                  'PIKKAR',
-                                  style: TextStyle(
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Text(
+                            'PIKKAR',
+                            style: TextStyle(
                                     fontSize: Responsive.fontSize(context, 42),
-                                    fontWeight: FontWeight.bold,
-                                    color: _appTheme.textColor,
-                                    letterSpacing: 1,
-                                  ),
-                                );
-                              },
+                              fontWeight: FontWeight.bold,
+                              color: _appTheme.textColor,
+                              letterSpacing: 1,
                             ),
-                            SizedBox(height: Responsive.spacing(context, 8)),
-                          ],
-                        ),
+                          );
+                        },
                       ),
+                            SizedBox(height: Responsive.spacing(context, 8)),
+                    ],
+                  ),
+                ),
 
                       SizedBox(height: Responsive.hp(context, 7.4)),
 
-                      /// LOGIN SECTION
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Login',
-                            style: TextStyle(
+                /// LOGIN SECTION
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Login',
+                      style: TextStyle(
                               fontSize: Responsive.fontSize(context, 32),
-                              fontWeight: FontWeight.bold,
-                              color: _appTheme.textColor,
-                            ),
-                          ),
+                        fontWeight: FontWeight.bold,
+                        color: _appTheme.textColor,
+                      ),
+                    ),
                           SizedBox(height: Responsive.spacing(context, 8)),
-                          Text(
-                            'Enter your phone number to continue',
-                            style: TextStyle(
+                    Text(
+                      'Enter your phone number to continue',
+                      style: TextStyle(
                               fontSize: Responsive.fontSize(context, 14),
-                              color: _appTheme.textGrey,
-                            ),
-                          ),
+                        color: _appTheme.textGrey,
+                      ),
+                    ),
                           SizedBox(height: Responsive.spacing(context, 32)),
 
-                          /// PHONE NUMBER INPUT
-                          Container(
+                    /// PHONE NUMBER INPUT
+                    Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: Responsive.padding(context, 16),
                               vertical: 4,
                             ),
-                            decoration: BoxDecoration(
-                              color: _appTheme.iconBgColor,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _phoneFocusNode.hasFocus
-                                    ? _appTheme.brandRed
-                                    : _appTheme.dividerColor,
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                // Country Code
-                                Text(
-                                  '+91',
-                                  style: TextStyle(
-                                    fontSize: Responsive.fontSize(context, 16),
-                                    color: _appTheme.textColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                SizedBox(width: Responsive.spacing(context, 12)),
-                                // Divider
-                                Container(
-                                  width: 1,
-                                  height: Responsive.spacing(context, 24),
-                                  color: _appTheme.dividerColor,
-                                ),
-                                SizedBox(width: Responsive.spacing(context, 12)),
-                                // Phone Number Input
-                                Expanded(
-                                  child: TextField(
-                                    controller: _phoneController,
-                                    focusNode: _phoneFocusNode,
-                                    keyboardType: TextInputType.phone,
-                                    style: TextStyle(
-                                      fontSize: Responsive.fontSize(context, 16),
-                                      color: _appTheme.textColor,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Phone number',
-                                      hintStyle: TextStyle(
-                                        color: _appTheme.textGrey,
-                                        fontSize: Responsive.fontSize(context, 16),
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      SizedBox(height: Responsive.spacing(context, 32)),
-
-                      /// CONTINUE BUTTON
-                      SizedBox(
-                        width: double.infinity,
-                        height: Responsive.hp(context, 6.9),
-                        child: ElevatedButton(
-                          onPressed: _handleContinue,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _appTheme.brandRed,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: Responsive.fontSize(context, 16),
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                      decoration: BoxDecoration(
+                        color: _appTheme.iconBgColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _phoneFocusNode.hasFocus
+                              ? _appTheme.brandRed
+                              : _appTheme.dividerColor,
+                          width: 1,
                         ),
                       ),
-
-                      SizedBox(height: Responsive.spacing(context, 32)),
-
-                      /// DIVIDER
-                      Row(
+                      child: Row(
                         children: [
-                          Expanded(
-                            child: Divider(
-                              color: _appTheme.dividerColor,
-                              thickness: 1,
+                          // Country Code
+                          Text(
+                            '+91',
+                            style: TextStyle(
+                                    fontSize: Responsive.fontSize(context, 16),
+                              color: _appTheme.textColor,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: Responsive.spacing(context, 16)),
-                            child: Text(
-                              'or',
+                                SizedBox(width: Responsive.spacing(context, 12)),
+                          // Divider
+                          Container(
+                            width: 1,
+                                  height: Responsive.spacing(context, 24),
+                            color: _appTheme.dividerColor,
+                          ),
+                                SizedBox(width: Responsive.spacing(context, 12)),
+                          // Phone Number Input
+                          Expanded(
+                            child: TextField(
+                              controller: _phoneController,
+                              focusNode: _phoneFocusNode,
+                              keyboardType: TextInputType.phone,
                               style: TextStyle(
-                                color: _appTheme.textGrey,
-                                fontSize: Responsive.fontSize(context, 14),
+                                      fontSize: Responsive.fontSize(context, 16),
+                                color: _appTheme.textColor,
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              color: _appTheme.dividerColor,
-                              thickness: 1,
+                              decoration: InputDecoration(
+                                hintText: 'Phone number',
+                                hintStyle: TextStyle(
+                                  color: _appTheme.textGrey,
+                                        fontSize: Responsive.fontSize(context, 16),
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+
+                      SizedBox(height: Responsive.spacing(context, 32)),
+
+                /// CONTINUE BUTTON
+                SizedBox(
+                  width: double.infinity,
+                        height: Responsive.hp(context, 6.9),
+                  child: ElevatedButton(
+                    onPressed: _handleContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _appTheme.brandRed,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Continue',
+                            style: TextStyle(
+                              fontSize: Responsive.fontSize(context, 16),
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+
+                      SizedBox(height: Responsive.spacing(context, 32)),
+
+                /// DIVIDER
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: _appTheme.dividerColor,
+                        thickness: 1,
+                      ),
+                    ),
+                    Padding(
+                            padding: EdgeInsets.symmetric(horizontal: Responsive.spacing(context, 16)),
+                      child: Text(
+                        'or',
+                        style: TextStyle(
+                          color: _appTheme.textGrey,
+                                fontSize: Responsive.fontSize(context, 14),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: _appTheme.dividerColor,
+                        thickness: 1,
+                      ),
+                    ),
+                  ],
+                ),
 
                       SizedBox(height: Responsive.spacing(context, 24)),
 
-                      /// CONTINUE WITH GOOGLE BUTTON
-                      _socialButton(
-                        icon: Icons.g_mobiledata,
-                        label: 'Continue with Google',
-                        onTap: () {
-                          // For Google login, navigate directly to home
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => HomeScreen(),
-                            ),
-                          );
-                        },
-                        isGoogle: true,
+                /// CONTINUE WITH GOOGLE BUTTON
+                _socialButton(
+                  icon: Icons.g_mobiledata,
+                  label: 'Continue with Google',
+                  onTap: () {
+                    // For Google login, navigate directly to home
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => HomeScreen(),
                       ),
+                    );
+                  },
+                  isGoogle: true,
+                ),
 
                       SizedBox(height: Responsive.spacing(context, 40)),
 
-                      /// TERMS & PRIVACY POLICY
+                /// TERMS & PRIVACY POLICY
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: Responsive.spacing(context, 16)),
                         child: Center(
-                          child: Text(
-                            'By continuing, you agree to our Terms & Privacy Policy',
-                            style: TextStyle(
+                  child: Text(
+                    'By continuing, you agree to our Terms & Privacy Policy',
+                    style: TextStyle(
                               fontSize: Responsive.fontSize(context, 12),
-                              color: _appTheme.textGrey,
-                            ),
-                            textAlign: TextAlign.center,
+                      color: _appTheme.textGrey,
+                    ),
+                    textAlign: TextAlign.center,
                           ),
-                        ),
-                      ),
+                  ),
+                ),
 
                       SizedBox(height: Responsive.spacing(context, 40)),
-                    ],
-                  ),
+              ],
+            ),
                 ),
               );
             },
@@ -382,11 +382,11 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(width: Responsive.spacing(context, 12)),
             Flexible(
               child: Text(
-                label,
-                style: TextStyle(
+              label,
+              style: TextStyle(
                   fontSize: Responsive.fontSize(context, 16),
-                  fontWeight: FontWeight.w500,
-                  color: _appTheme.textColor,
+                fontWeight: FontWeight.w500,
+                color: _appTheme.textColor,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),

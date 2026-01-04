@@ -167,7 +167,7 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
-            ),
+                      ),
 
             // Bottom sheet - Fixed (Not Draggable)
             Positioned(
@@ -176,39 +176,39 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
               right: 0,
               child: Container(
                 height: Responsive.hp(context, 50),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Column(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Handle bar
-                    Container(
+                    children: [
+                      // Handle bar
+                      Container(
                       width: Responsive.spacing(context, 40),
                       height: Responsive.spacing(context, 4),
                       margin: EdgeInsets.symmetric(vertical: Responsive.spacing(context, 12)),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
 
-                    Expanded(
-                      child: SingleChildScrollView(
+                      Expanded(
+                        child: SingleChildScrollView(
                         physics: const NeverScrollableScrollPhysics(),
                         padding: EdgeInsets.symmetric(horizontal: Responsive.padding(context, 16)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
-                          children: [
+                            children: [
                               // Service options
                               Row(
                                 children: [
@@ -393,28 +393,28 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                               ),
 
                             SizedBox(height: Responsive.spacing(context, 20)),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    // Book Parcel button
-                    Container(
+                      // Book Parcel button
+                      Container(
                       padding: EdgeInsets.all(Responsive.padding(context, 16)),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, -2),
+                            ),
+                          ],
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
@@ -427,28 +427,28 @@ class _ParcelBookingScreenState extends State<ParcelBookingScreen> {
                                 ),
                               ),
                             );
-                          },
-                          style: ElevatedButton.styleFrom(
+                            },
+                            style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE53935), // Red color
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.symmetric(vertical: Responsive.padding(context, 16)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
-                          ),
                           child: Text(
-                            'Book Parcel',
-                            style: TextStyle(
+                              'Book Parcel',
+                              style: TextStyle(
                               fontSize: Responsive.fontSize(context, 16),
-                              fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ),
             ),
          

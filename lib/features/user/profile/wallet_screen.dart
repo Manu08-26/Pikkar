@@ -235,7 +235,7 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: _appTheme.brandRed, size: 32),
+            Icon(icon, color: _appTheme.textGrey, size: 32),
             const SizedBox(height: 8),
             Text(
               title,
@@ -285,7 +285,7 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
       ),
       trailing: isSelected
-          ? Icon(Icons.check_circle, color: _appTheme.brandRed)
+          ? Icon(Icons.check_circle, color: _appTheme.textGrey)
           : Icon(
               _appTheme.rtlEnabled ? Icons.chevron_left : Icons.chevron_right,
               color: _appTheme.textGrey,

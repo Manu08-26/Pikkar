@@ -122,12 +122,12 @@ class _ShareAppScreenState extends State<ShareAppScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: _appTheme.brandRed.withOpacity(0.1),
+                              color: Colors.black.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               Icons.copy,
-                              color: _appTheme.brandRed,
+                              color: Colors.black,
                               size: 20,
                             ),
                           ),

@@ -290,7 +290,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 10),
 
                     // Ride Details (fixed content, no scroll)
                     Expanded(
@@ -316,7 +316,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                         '"Transparent fares and zero hidden charges - only on Pikkar."',
                         style: TextStyle(
                                   color: Colors.white,
-                          fontSize: 12,
+                          fontSize: 10,
                                   fontWeight: FontWeight.w500,
                                 ),
                         maxLines: 1,

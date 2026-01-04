@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'recent_locations_store.dart';
 import '../common/notifications.dart';
 import '../common/promo_code_details_screen.dart';
 import 'drop_screen.dart';
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _retryCount = 0;
   static const int _maxRetries = 3;
   String? _selectedDeliveryService; // Track selected delivery service
+  final List<Map<String, String>> _recentDrops = [];
 
   @override
   void initState() {
@@ -56,6 +58,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _getCurrentLocation();
       }
     });
+    _loadRecentDrops();
+  }
+
+  void _loadRecentDrops() {
+    _recentDrops
+      ..clear()
+      ..addAll(RecentLocationsStore.items);
+    if (mounted) setState(() {});
   }
 
   void _startCarouselTimer() {
@@ -500,7 +510,7 @@ Widget build(BuildContext context) {
       /// TOP RIGHT ICONS
       actions: [
         // Notification icon with red dot
-            Stack(
+        Stack(
           children: [
             IconButton(
               icon: Icon(
@@ -539,7 +549,7 @@ Widget build(BuildContext context) {
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
-            child: Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
            
@@ -567,14 +577,14 @@ Widget build(BuildContext context) {
                                 horizontal: Responsive.spacing(context, 16),
                               ),
                               child: Text(
-                                "Pocket-Friendly Rides, Always!",
-                                textAlign: TextAlign.center,
+                              "Pocket-Friendly Rides, Always!",
+                              textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: Responsive.fontSize(context, 20),
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Akatab',
-                                ),
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Akatab',
                               ),
+                            ),
                             ),
                             SizedBox(height: Responsive.spacing(context, 8)),
                             Padding(
@@ -582,11 +592,11 @@ Widget build(BuildContext context) {
                                 horizontal: Responsive.spacing(context, 16),
                               ),
                               child: Text(
-                                "No surge fees, no hidden charges - just low prices every time!",
-                                textAlign: TextAlign.center,
+                              "No surge fees, no hidden charges - just low prices every time!",
+                              textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: Responsive.fontSize(context, 14),
-                                  fontFamily: 'Akatab',
+                                fontFamily: 'Akatab',
                                 ),
                               ),
                             ),
@@ -601,13 +611,13 @@ Widget build(BuildContext context) {
                                 horizontal: Responsive.spacing(context, 16),
                               ),
                               child: Text(
-                                "Fast & Reliable Service",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
+                              "Fast & Reliable Service",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
                                   fontSize: Responsive.fontSize(context, 20),
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                fontWeight: FontWeight.bold,
                               ),
+                            ),
                             ),
                             SizedBox(height: Responsive.spacing(context, 8)),
                             Padding(
@@ -615,11 +625,11 @@ Widget build(BuildContext context) {
                                 horizontal: Responsive.spacing(context, 16),
                               ),
                               child: Text(
-                                "Get to your destination quickly and safely with our trusted drivers!",
-                                textAlign: TextAlign.center,
+                              "Get to your destination quickly and safely with our trusted drivers!",
+                              textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: Responsive.fontSize(context, 14),
-                                  fontFamily: 'Akatab',
+                                fontFamily: 'Akatab',
                                 ),
                               ),
                             ),
@@ -634,13 +644,13 @@ Widget build(BuildContext context) {
                                 horizontal: Responsive.spacing(context, 16),
                               ),
                               child: Text(
-                                "24/7 Available",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
+                              "24/7 Available",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
                                   fontSize: Responsive.fontSize(context, 20),
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                fontWeight: FontWeight.bold,
                               ),
+                            ),
                             ),
                             SizedBox(height: Responsive.spacing(context, 8)),
                             Padding(
@@ -648,11 +658,11 @@ Widget build(BuildContext context) {
                                 horizontal: Responsive.spacing(context, 16),
                               ),
                               child: Text(
-                                "Book a ride anytime, anywhere - we're always here for you!",
-                                textAlign: TextAlign.center,
+                              "Book a ride anytime, anywhere - we're always here for you!",
+                              textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: Responsive.fontSize(context, 14),
-                                  fontFamily: 'Akatab',
+                                fontFamily: 'Akatab',
                                 ),
                               ),
                             ),
@@ -706,7 +716,7 @@ Widget build(BuildContext context) {
                     style: TextStyle(
                       fontSize: Responsive.fontSize(context, 14),
                       fontWeight: FontWeight.w600,
-                    ),
+                  ),
                   ),
                   SizedBox(height: Responsive.spacing(context, 16)),
 
@@ -742,20 +752,21 @@ Widget build(BuildContext context) {
                           }
                         }, isSelected: _selectedDeliveryService == 'Parcel'),
                         SizedBox(width: Responsive.spacing(context, 20)),
-                        _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ParcelDeliveryScreen(
-                                serviceType: 'Delivery',
-                              ),
-                            ),
-                          ).then((_) {
-                          setState(() {
-                              _selectedDeliveryService = null;
-                            });
-                          });
-                        }, isSelected: _selectedDeliveryService == 'Delivery'),
+                        // _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
+                        //   Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(
+                        //       builder: (_) => const ParcelDeliveryScreen(
+                        //         serviceType: 'Delivery',
+                        //       ),
+                        //     ),
+                        //   ).then((_) {
+                        //   setState(() {
+                        //       _selectedDeliveryService = null;
+                        //     });
+                        //   });
+                        // }, isSelected: _selectedDeliveryService == 'Delivery'),
+                       
                         SizedBox(width: Responsive.spacing(context, 8)),
                         InkWell(
                           onTap: () {
@@ -851,87 +862,79 @@ Widget build(BuildContext context) {
                   ),
                   SizedBox(height: Responsive.spacing(context, 16)),
 
-                  // Suggested Locations
-                  _buildSuggestedLocation(
-                    context,
-                    name: 'Lulu Mall',
-                    address: '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                    isFavorite: true,
-                    isRecent: false,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BookRideScreen(
-                            rideType: 'Parcel',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: Responsive.spacing(context, 12)),
-                  _buildSuggestedLocation(
-                    context,
-                    name: 'Hotel Grand Sitara',
-                    address: '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                    isFavorite: false,
-                    isRecent: true,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BookRideScreen(
-                            rideType: 'Parcel',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: Responsive.spacing(context, 12)),
-                  _buildSuggestedLocation(
-                    context,
-                    name: 'GVK Mall',
-                    address: '20-01-5/B, Kondapur, Hyderabad, Telangana, 50002',
-                    isFavorite: false,
-                    isRecent: true,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BookRideScreen(
-                            rideType: 'Parcel',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  SizedBox(height: Responsive.spacing(context, 24)),
-
-                  /// TRENDING OFFERS
-                  Text(
-                    'Trending Offers',
-                    style: TextStyle(
-                      fontSize: Responsive.fontSize(context, 14),
-                      fontWeight: FontWeight.w600,
+                  // Recent Locations (from stored recent drops)
+                  if (_recentDrops.isNotEmpty) ...[
+                    Text(
+                      'Recent locations',
+                      style: TextStyle(
+                        fontSize: Responsive.fontSize(context, 14),
+                        fontWeight: FontWeight.w600,
+                        color: _appTheme.textColor,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: Responsive.spacing(context, 16)),
-
-                  _offerCard(
-                    context,
-                    title: "Flat 10% OFF",
-                    subtitle: "Valid on your next ride",
-                    code: "RIDE10",
-                  ),
-                  _offerCard(
-                    context,
-                    title: "Flat 15% OFF",
-                    subtitle: "Valid till 05 Mar 2026",
-                    code: "SAVE15",
-                  ),
+                    SizedBox(height: Responsive.spacing(context, 12)),
+                    ..._recentDrops.map(
+                      (item) => Padding(
+                        padding: EdgeInsets.only(
+                          bottom: Responsive.spacing(context, 12),
+                        ),
+                        child: _buildSuggestedLocation(
+                          context,
+                          name: item['name'] ?? '',
+                          address: item['address'] ?? '',
+                          isFavorite: false,
+                          isRecent: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BookRideScreen(
+                                  rideType: 'Parcel',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: Responsive.spacing(context, 12)),
+                  ] else ...[
+                    Text(
+                      'No recent locations yet',
+                      style: TextStyle(
+                        fontSize: Responsive.fontSize(context, 13),
+                        color: _appTheme.textGrey,
+                      ),
+                    ),
+                    SizedBox(height: Responsive.spacing(context, 16)),
+                  ],
 
                   SizedBox(height: Responsive.spacing(context, 24)),
+
+                  // /// TRENDING OFFERS
+                  // Text(
+                  //   'Trending Offers',
+                  //   style: TextStyle(
+                  //     fontSize: Responsive.fontSize(context, 14),
+                  //     fontWeight: FontWeight.w600,
+                  //   ),
+                  // ),
+                  // SizedBox(height: Responsive.spacing(context, 16)),
+
+                  // _offerCard(
+                  //   context,
+                  //   title: "Flat 10% OFF",
+                  //   subtitle: "Valid on your next ride",
+                  //   code: "RIDE10",
+                  // ),
+                  // _offerCard(
+                  //   context,
+                  //   title: "Flat 15% OFF",
+                  //   subtitle: "Valid till 05 Mar 2026",
+                  //   code: "SAVE15",
+                  // ),
+
+                  // SizedBox(height: Responsive.spacing(context, 24)),
 
                   /// BANNER
                   Image.asset(
@@ -957,7 +960,7 @@ Widget build(BuildContext context) {
                                   SizedBox(
                                     width: Responsive.spacing(context, 16),
                                     height: Responsive.spacing(context, 16),
-                                  ),
+                            ),
                             ),
                             SizedBox(width: Responsive.spacing(context, 6)),
                             Text(
