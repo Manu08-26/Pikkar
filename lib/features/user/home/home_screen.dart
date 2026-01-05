@@ -992,7 +992,7 @@ Widget build(BuildContext context) {
                                   ),
                             ),
                                 Transform.translate(
-                                  offset: Offset(-Responsive.spacing(context, 3), 0),
+                                  offset: Offset(-Responsive.spacing(context, 6), 0),
                                   child: Text(
                                     "yderabad",
                                     style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
