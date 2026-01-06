@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {});
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     // Validate phone number
     if (_phoneController.text.isEmpty || _phoneController.text.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,15 +84,60 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Navigate to OTP verification screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OTPVerificationScreen(
-          phoneNumber: '+91 ${_phoneController.text}',
+    setState(() => _isSendingOTP = true);
+
+    final phoneNumber = '+91${_phoneController.text}';
+
+    try {
+      // Send OTP via Firebase
+      await _authService.sendOtp(
+        phone: phoneNumber,
+        codeSent: (String verificationId) {
+          setState(() => _isSendingOTP = false);
+          
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('OTP sent to $phoneNumber'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+
+          // Navigate to OTP verification screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OTPVerificationScreen(
+                phoneNumber: phoneNumber,
+                verificationId: verificationId,
+              ),
+            ),
+          );
+        },
+        error: (String errorMessage) {
+          setState(() => _isSendingOTP = false);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to send OTP: $errorMessage'),
+              backgroundColor: _appTheme.brandRed,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      setState(() => _isSendingOTP = false);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: _appTheme.brandRed,
+          behavior: SnackBarBehavior.floating,
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -236,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                         height: Responsive.hp(context, 6.9),
                   child: ElevatedButton(
-                    onPressed: _handleContinue,
+                    onPressed: _isSendingOTP ? null : _handleContinue,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _appTheme.brandRed,
                       elevation: 0,
@@ -244,14 +289,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      'Continue',
+                    child: _isSendingOTP
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'Continue',
                             style: TextStyle(
                               fontSize: Responsive.fontSize(context, 16),
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
 

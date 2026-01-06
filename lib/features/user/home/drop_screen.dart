@@ -34,14 +34,18 @@ String _selectedPlaceName = '';
   GoogleMapController? _mapController;
   final TextEditingController _pickupSearchController = TextEditingController();
   final TextEditingController _dropSearchController = TextEditingController();
+  final TextEditingController _addStopSearchController = TextEditingController();
   final FocusNode _pickupFocusNode = FocusNode();
   List<Map<String, dynamic>> _pickupSearchResults = [];
   List<Map<String, dynamic>> _dropSearchResults = [];
+  List<Map<String, dynamic>> _addStopSearchResults = [];
   bool _pickupUserInteracted = false;
   bool _isSearchingPickup = false;
   bool _isSearchingDrop = false;
+  bool _isSearchingAddStop = false;
   bool _showPickupSearch = false;
   bool _showDropSearch = false;
+  bool _showAddStopSearch = false;
   Position? _currentLocation;
   LatLng? _pickupLocation;
   LatLng? _selectedLocation;
@@ -59,6 +63,7 @@ String _selectedPlaceName = '';
     _initializeLocation();
     _pickupSearchController.addListener(() => _onPickupSearchChanged());
     _dropSearchController.addListener(() => _onDropSearchChanged());
+    _addStopSearchController.addListener(() => _onAddStopSearchChanged());
     _loadRecentDrops();
   }
 
@@ -68,6 +73,7 @@ String _selectedPlaceName = '';
     _mapController?.dispose();
     _pickupSearchController.dispose();
     _dropSearchController.dispose();
+    _addStopSearchController.dispose();
     _pickupFocusNode.dispose();
     super.dispose();
   }
@@ -103,12 +109,29 @@ String _selectedPlaceName = '';
       setState(() {
         _showDropSearch = true;
         _showPickupSearch = false;
+        _showAddStopSearch = false;
       });
       _searchPlaces(_dropSearchController.text, false);
     } else {
       setState(() {
         _dropSearchResults = [];
         _showDropSearch = false;
+      });
+    }
+  }
+
+  void _onAddStopSearchChanged() {
+    if (_addStopSearchController.text.isNotEmpty) {
+      setState(() {
+        _showAddStopSearch = true;
+        _showPickupSearch = false;
+        _showDropSearch = false;
+      });
+      _searchPlacesForAddStop(_addStopSearchController.text);
+    } else {
+      setState(() {
+        _addStopSearchResults = [];
+        _showAddStopSearch = false;
       });
     }
   }
@@ -299,6 +322,71 @@ String _selectedPlaceName = '';
         } else {
           _isSearchingDrop = false;
         }
+      });
+    }
+  }
+
+  Future<void> _searchPlacesForAddStop(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _addStopSearchResults = [];
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingAddStop = true;
+    });
+
+    try {
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$query&key=$_apiKey&components=country:in',
+      );
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'OK' && mounted) {
+        List<Map<String, dynamic>> results = (data['predictions'] as List)
+            .map((prediction) {
+              String fullDescription = prediction['description'];
+              String placeName = fullDescription.split(',').first.trim();
+              return {
+                'description': fullDescription,
+                'place_name': placeName,
+                'place_id': prediction['place_id'],
+                'distance': null,
+              };
+            })
+            .toList();
+        
+        // Calculate distances if current location is available
+        if (_currentLocation != null) {
+          for (var result in results) {
+            _calculateDistanceForPlace(result['place_id']).then((distance) {
+              if (mounted) {
+                setState(() {
+                  int index = _addStopSearchResults.indexWhere((r) => r['place_id'] == result['place_id']);
+                  if (index != -1) {
+                    _addStopSearchResults[index]['distance'] = distance;
+                  }
+                });
+              }
+            });
+          }
+        }
+        
+        setState(() {
+          _addStopSearchResults = results;
+          _isSearchingAddStop = false;
+        });
+      } else {
+        setState(() {
+          _isSearchingAddStop = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isSearchingAddStop = false;
       });
     }
   }
@@ -549,7 +637,7 @@ String _selectedPlaceName = '';
                               ),
                               style: TextStyle(
                                 color: _appTheme.textColor,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w400,
                                 fontSize: 16,
                               ),
                               onTap: () {
@@ -574,8 +662,8 @@ String _selectedPlaceName = '';
                           ),
                         ],
                       ),
-                      
-                      const SizedBox(height: 16),
+                       if (!_showAddStopRow)
+                      const SizedBox(height: 4),
                       
                       // Add Stop field (black diamond with number 1) - conditionally shown
                       if (_showAddStopRow)
@@ -612,7 +700,7 @@ String _selectedPlaceName = '';
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 7),
                                 child: TextField(
-                                  controller: _dropSearchController,
+                                  controller: _addStopSearchController,
                                   decoration: InputDecoration(
                                     hintText: 'Add Stop',
                                     hintStyle: TextStyle(
@@ -631,8 +719,9 @@ String _selectedPlaceName = '';
                                   ),
                                   onTap: () {
                                     setState(() {
-                                      _showDropSearch = true;
+                                      _showAddStopSearch = true;
                                       _showPickupSearch = false;
+                                      _showDropSearch = false;
                                     });
                                   },
                                 ),
@@ -662,10 +751,9 @@ String _selectedPlaceName = '';
                               onPressed: () {
                                 setState(() {
                                   _showAddStopRow = false; // Hide the row
-                                  _dropSearchController.clear();
-                                  _selectedLocation = null;
-                                  _selectedLocationName = null;
-                                  _showDropSearch = false;
+                                  _addStopSearchController.clear();
+                                  _addStopSearchResults = [];
+                                  _showAddStopSearch = false;
                                 });
                               },
                               padding: EdgeInsets.zero,
@@ -674,7 +762,8 @@ String _selectedPlaceName = '';
                           ],
                         ),
                       
-                      if (_showAddStopRow) const SizedBox(height: 16),
+                      if (_showAddStopRow) 
+                      const SizedBox(height: 16),
                       
                       // Drop Location (editable)
                       Row(
@@ -837,8 +926,8 @@ String _selectedPlaceName = '';
                                       child: Container(
                                         width: 12,
                                         height: 12,
-                                        decoration: BoxDecoration(
-                                          color: _appTheme.brandRed,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.green,
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Center(
@@ -911,6 +1000,129 @@ String _selectedPlaceName = '';
                   ),
                 ),
 
+              // Add Stop Search Results
+              if (_showAddStopSearch && _addStopSearchResults.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _appTheme.dividerColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: _addStopSearchResults.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final result = entry.value;
+                        return Column(
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _addStopSearchController.text = result['place_name'] ?? result['description'];
+                                  _addStopSearchResults = [];
+                                  _showAddStopSearch = false;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Black diamond icon
+                                    Padding(padding: const EdgeInsets.only(top: 6), child: 
+                                     Align(
+                                      alignment: Alignment.center,
+                                      child: Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.circle,
+                                            color: Colors.white,
+                                            size: 8,
+                                          ),
+                                        ),
+                                      ),
+                                    ),),
+                                    const SizedBox(width: 12),
+                                    // Location details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            result['place_name'] ?? result['description'],
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.black,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          if (result['distance'] != null)
+                                            Text(
+                                              '${result['distance'].toStringAsFixed(1)} km',
+                                              style: TextStyle(
+                                                color: _appTheme.textGrey,
+                                                fontSize: 13,
+                                              ),
+                                            )
+                                          else
+                                            const SizedBox(height: 16),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            result['description'],
+                                            style: TextStyle(
+                                              color: _appTheme.textGrey,
+                                              fontSize: 12,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.favorite_border,
+                                        color: _appTheme.textGrey,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {},
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (index < _addStopSearchResults.length - 1)
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: Colors.grey.shade300,
+                                indent: 0,
+                                endIndent: 0,
+                              ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+
               // Drop Search Results (shown after buttons)
               if (_showDropSearch && _dropSearchResults.isNotEmpty)
                 Padding(
@@ -950,7 +1162,7 @@ String _selectedPlaceName = '';
                                         width: 12,
                                         height: 12,
                                         decoration: const BoxDecoration(
-                                          color: Colors.black,
+                                          color: Colors.red,
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Center(
@@ -1043,7 +1255,7 @@ String _selectedPlaceName = '';
               const SizedBox(height: 16),
 
               // Recent Locations List (real recent selections)
-              if (!_showPickupSearch && !_showDropSearch && _recentDrops.isNotEmpty)
+              if (!_showPickupSearch && !_showDropSearch && !_showAddStopSearch && _recentDrops.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(

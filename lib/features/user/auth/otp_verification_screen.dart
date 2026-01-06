@@ -3,13 +3,16 @@ import 'package:flutter/services.dart';
 import '../home/home_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/services/auth_service.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String phoneNumber;
+  final String verificationId;
 
   const OTPVerificationScreen({
     super.key,
     required this.phoneNumber,
+    required this.verificationId,
   });
 
   @override
@@ -18,6 +21,7 @@ class OTPVerificationScreen extends StatefulWidget {
 
 class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   final AppTheme _appTheme = AppTheme();
+  final AuthService _authService = AuthService();
   final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isVerifying = false;
@@ -75,7 +79,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     }
   }
 
-  void _verifyOTP() {
+  Future<void> _verifyOTP() async {
     String otp = _otpControllers.map((controller) => controller.text).join();
     
     if (otp.length != 6) {
@@ -87,12 +91,27 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       _isVerifying = true;
     });
 
-    // Simulate OTP verification
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // Verify OTP with Firebase
+      await _authService.verifyOtp(
+        verificationId: widget.verificationId,
+        otp: otp,
+      );
+
       if (mounted) {
         setState(() {
           _isVerifying = false;
         });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Phone verified successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
         // Navigate to home screen
         Navigator.pushReplacement(
           context,
@@ -101,7 +120,14 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
           ),
         );
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+        });
+        _showError('Invalid OTP. Please try again.');
+      }
+    }
   }
 
   void _resendOTP() {

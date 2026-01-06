@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../features/user/auth/splash_screen.dart';
 import '../features/user/home/location_permission_screen.dart';
 import '../features/user/auth/login_screen.dart';
-import '../features/user/auth/otp_verification_screen.dart';
 import '../features/user/home/home_screen.dart';
 
 class AppRoutes {
@@ -15,9 +14,6 @@ class AppRoutes {
   // Login Screen
   static const String login = '/login';
   
-  // OTP Verification Screen
-  static const String otpVerification = '/otp-verification';
-  
   // Home Screen
   static const String home = '/home';
 
@@ -25,7 +21,10 @@ class AppRoutes {
     splash: (_) => const SplashScreen(),
     locationPermission: (_) => const LocationPermissionScreen(),
     login: (_) => const LoginScreen(),
-    otpVerification: (_) => OTPVerificationScreen(phoneNumber: ''),
     home: (_) => const HomeScreen(),
   };
 }
+
+// Note: OTP Verification Screen is accessed via Navigator.push from LoginScreen
+// with dynamic parameters (phoneNumber and verificationId), so it's not included
+// in static routes

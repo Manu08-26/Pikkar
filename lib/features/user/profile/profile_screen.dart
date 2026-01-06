@@ -8,8 +8,11 @@ import 'rate_rides_screen.dart';
 import 'wallet_screen.dart';
 import 'saved_addresses_screen.dart';
 import 'help_support_screen.dart';
+import '../../../core/services/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
+import 'edit_profile_screen.dart';
+import 'profile_store.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,11 +23,16 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AppTheme _appTheme = AppTheme();
+  String _firstName = '';
+  String _lastName = '';
+  String _phone = '';
+  String _email = '';
 
   @override
   void initState() {
     super.initState();
     _appTheme.addListener(_onThemeChanged);
+    _loadProfile();
   }
 
   @override
@@ -37,9 +45,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {});
   }
 
+  Future<void> _loadProfile() async {
+    final data = await ProfileStore.load();
+    if (!mounted) return;
+    setState(() {
+      _firstName = data['firstName'] ?? '';
+      _lastName = data['lastName'] ?? '';
+      _phone = data['phone'] ?? '';
+      _email = data['email'] ?? '';
+    });
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          'Logout',
+          style: TextStyle(color: _appTheme.textColor),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(color: _appTheme.textGrey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: _appTheme.textGrey),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              ApiClient.removeToken();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LoginScreen(),
+                ),
+                (route) => false,
+              );
+            },
+            child: Text(
+              'Logout',
+              style: TextStyle(color: _appTheme.brandRed),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final displayName = ('${_firstName.trim()} ${_lastName.trim()}').trim();
+    final isGuest = displayName.isEmpty;
+    final avatarLetter = (isGuest ? 'G' : displayName[0]).toUpperCase();
     return Directionality(
       textDirection: _appTheme.textDirection,
       child: Scaffold(
@@ -98,9 +164,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 35,
                       backgroundColor: _appTheme.brandRed,
-                      child: const Text(
-                        'G',
-                        style: TextStyle(
+                      child: Text(
+                        avatarLetter,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -113,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            localizations.guest,
+                            isGuest ? localizations.guest : displayName,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
@@ -122,16 +188,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '+91 9876543210',
+                            _phone.isNotEmpty ? _phone : '+91 -----------',
                             style: TextStyle(
                               fontSize: 14,
                               color: _appTheme.textGrey,
                             ),
                           ),
+                          if (_email.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _email,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: _appTheme.textGrey,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           InkWell(
                             onTap: () {
-                              // Navigate to edit profile
+                              Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                              ).then((saved) {
+                                if (saved == true) _loadProfile();
+                              });
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -353,6 +434,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       subtitle: 'Version: 2.0.2',
                       onTap: () {},
                     ),
+                    Divider(height: 1, color: _appTheme.dividerColor),
+                    _buildMenuItem(
+                      icon: Icons.logout,
+                      title: 'Logout',
+                      onTap: _showLogoutDialog,
+                    ),
                   ],
                 ),
               ),
@@ -362,45 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(
-                          'Sign Out',
-                          style: TextStyle(color: _appTheme.textColor),
-                        ),
-                        content: Text(
-                          'Are you sure you want to sign out?',
-                          style: TextStyle(color: _appTheme.textGrey),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(color: _appTheme.textGrey),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const LoginScreen(),
-                                ),
-                                (route) => false,
-                              );
-                            },
-                            child: Text(
-                              'Sign Out',
-                              style: TextStyle(color: _appTheme.brandRed),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  onPressed: _showLogoutDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _appTheme.brandRed,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -410,7 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Sign Out',
+                    'Logout',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

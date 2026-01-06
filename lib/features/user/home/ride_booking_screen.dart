@@ -1103,31 +1103,31 @@ void _onEditDrop() async {
             ),
 
             // Add Stops button (overlay near location button)
-            Positioned(
-              right: 16,
-              bottom: 220,
-              child: ElevatedButton.icon(
-                onPressed: _showAddStopSheet,
-                icon: const Icon(Icons.add, color: Colors.black, size: 18),
-                label: const Text(
-                  'Add stops',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  elevation: 4,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  shadowColor: Colors.black.withOpacity(0.2),
-                ),
-              ),
-            ),
+            // Positioned(
+            //   right: 16,
+            //   bottom: 220,
+            //   child: ElevatedButton.icon(
+            //     onPressed: _showAddStopSheet,
+            //     icon: const Icon(Icons.add, color: Colors.black, size: 18),
+            //     label: const Text(
+            //       'Add stops',
+            //       style: TextStyle(
+            //         color: Colors.black,
+            //         fontWeight: FontWeight.w600,
+            //         fontSize: 14,
+            //       ),
+            //     ),
+            //     style: ElevatedButton.styleFrom(
+            //       backgroundColor: Colors.white,
+            //       elevation: 4,
+            //       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(24),
+            //       ),
+            //       shadowColor: Colors.black.withOpacity(0.2),
+            //     ),
+            //   ),
+            // ),
 
             // Loading Overlay
             if (_isLoading)

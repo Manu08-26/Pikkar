@@ -53,8 +53,20 @@ class _RapidoAppState extends State<RapidoApp> {
           Locale('ar', ''),
         ],
         theme: ThemeData(
+          useMaterial3: true,
           primaryColor: Colors.black,
           scaffoldBackgroundColor: _appTheme.backgroundColor,
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.white,
+            foregroundColor: _appTheme.textColor,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+          ),
+          dialogTheme: const DialogThemeData(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+          ),
         ),
         initialRoute: AppRoutes.splash,
         routes: AppRoutes.routes,

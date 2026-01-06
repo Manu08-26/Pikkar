@@ -937,10 +937,13 @@ Widget build(BuildContext context) {
                   // SizedBox(height: Responsive.spacing(context, 24)),
 
                   /// BANNER
-                  Image.asset(
-                    'assets/Bottom Content.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox(),
+                  Center(
+                    child: Image.asset(
+                      'assets/Bottom Content.png',
+                      alignment: Alignment.center,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(),
+                    ),
                   ),
 
                   SizedBox(height: Responsive.spacing(context, 40)),
@@ -962,7 +965,7 @@ Widget build(BuildContext context) {
                                     height: Responsive.spacing(context, 16),
                             ),
                             ),
-                            SizedBox(width: Responsive.spacing(context, 6)),
+                            //SizedBox(width: Responsive.spacing(context, 6)),
                             Text(
                               "Made in India",
                               style: TextStyle(fontSize: Responsive.fontSize(context, 12)),
@@ -1145,7 +1148,8 @@ Widget build(BuildContext context) {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: onTap,
+      // onTap: onTap,
+      onTap: null,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: EdgeInsets.symmetric(

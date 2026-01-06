@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../home/home_screen.dart';
 import '../services/services_screen.dart';
 import '../profile/profile_screen.dart';
+import '../common/notifications.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
 
@@ -60,12 +60,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
           actions: [
             IconButton(
               icon: Icon(Icons.notifications_outlined, color: _appTheme.textColor),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                );
+              },
             ),
-            IconButton(
-              icon: Icon(Icons.account_balance_wallet_outlined, color: _appTheme.textColor),
-              onPressed: () {},
-            ),
+            // IconButton(
+            //   icon: Icon(Icons.account_balance_wallet_outlined, color: _appTheme.textColor),
+            //   onPressed: () {},
+            // ),
             const SizedBox(width: 8),
           ],
         ),
@@ -166,8 +171,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             label: localizations.history,
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.settings_outlined),
-            label: localizations.setting,
+            icon: const Icon(Icons.person_outline),
+            label: 'Profile',
           ),
         ],
       ),
