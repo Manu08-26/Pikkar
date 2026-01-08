@@ -1349,6 +1349,7 @@ void _onEditDrop() async {
                                           rideType: _selectedRideType,
                                           pickupLatLng: _pickupLatLng,
                                           dropLatLng: _dropLatLng,
+                                          vehicle: _apiVehicleByName[_selectedRideType],
                                         ),
                                       ),
                                     );

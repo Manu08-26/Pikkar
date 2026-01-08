@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pikkar/core/models/api_models.dart';
 import 'cancel_ride_reasons_screen.dart';
 import 'driver_details_screen.dart';
 import '../../../core/theme/app_theme.dart';
@@ -12,6 +13,7 @@ class FindingDriverScreen extends StatefulWidget {
   final String rideType;
   final LatLng? pickupLatLng;
   final LatLng? dropLatLng;
+  final VehicleType? vehicle;
 
   const FindingDriverScreen({
     super.key,
@@ -20,6 +22,7 @@ class FindingDriverScreen extends StatefulWidget {
     required this.rideType,
     this.pickupLatLng,
     this.dropLatLng,
+    this.vehicle,
   });
 
   @override
@@ -169,12 +172,16 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
   
   void _navigateToDriverDetails() {
     // Mock ride details
+    final fare = widget.vehicle != null 
+        ? '₹${widget.vehicle!.pricing.baseFare.toStringAsFixed(0)}' 
+        : '₹120';
+        
     final rideDetails = {
       'vehicleNumber': 'TS02E1655',
       'vehicleModel': 'Hero Honda',
       'driverName': 'Sri Akshay',
       'driverRating': '4.9',
-      'price': '₹120',
+      'price': fare,
       'distance': '5.2 km',
       'duration': '15 mins',
       if (_rideId != null) 'rideId': _rideId,
@@ -573,6 +580,17 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
   }
 
   Map<String, dynamic> _getRideDetails(String rideType) {
+    if (widget.vehicle != null) {
+      final v = widget.vehicle!;
+      return {
+        'image': _assetForRideName(v.name),
+        'time': '2 Min',
+        'baseFare': '₹${v.pricing.baseFare.toStringAsFixed(0)}',
+        'price': '₹${v.pricing.baseFare.toStringAsFixed(0)}',
+        'icon': Icons.directions_car,
+      };
+    }
+
     switch (rideType) {
       case 'Bike':
         return {
@@ -623,5 +641,12 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
           'icon': Icons.two_wheeler,
         };
     }
+  }
+
+  String _assetForRideName(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('bike')) return 'assets/bike1.png';
+    if (n.contains('auto')) return 'assets/auto1.png';
+    return 'assets/car1.png';
   }
 }
