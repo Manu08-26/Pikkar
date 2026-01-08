@@ -6,6 +6,8 @@ import '../home/book_ride_screen.dart';
 import '../common/notifications.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
+import 'package:pikkar/core/services/api_service.dart';
+import 'package:pikkar/core/models/api_models.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -19,6 +21,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
   String? _selectedService;
   final PageController _promoController = PageController(viewportFraction: 0.92);
   int _promoIndex = 0;
+  bool _loadingServices = false;
+  List<_ServiceTileModel> _apiTiles = [];
 
   static const _promoAssets = <String>[
     'assets/carousel1.png',
@@ -26,7 +30,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     'assets/carousel3.png',
   ];
 
-  static const _serviceTiles = <_ServiceTileModel>[
+  static const _fallbackTiles = <_ServiceTileModel>[
     // Ride
     _ServiceTileModel(
       title: 'Bike',
@@ -77,6 +81,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
   void initState() {
     super.initState();
     _appTheme.addListener(_onThemeChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadServices());
   }
 
   @override
@@ -88,6 +93,66 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   void _onThemeChanged() {
     setState(() {});
+  }
+
+  String _assetForServiceName(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('bike')) return 'assets/bike1.png';
+    if (n.contains('auto')) return 'assets/auto1.png';
+    if (n.contains('cab') || n.contains('car')) return 'assets/All Icons Set-Pikkar_Cab.png';
+    if (n.contains('parcel')) return 'assets/All Icons Set-Pikkar_Parcel Bike.png';
+    if (n.contains('truck') || n.contains('tempo') || n.contains('freight')) {
+      return 'assets/All Icons Set-Pikkar_Tempo.png';
+    }
+    return 'assets/logo_red.png';
+  }
+
+  Future<void> _loadServices() async {
+    if (_loadingServices) return;
+    setState(() => _loadingServices = true);
+    try {
+      final results = await Future.wait([
+        PikkarApi.vehicleTypes.getActive(),
+        PikkarApi.parcelVehicles.getActive(),
+      ]);
+
+      final rideVehicles = results[0] as List<VehicleType>;
+      final parcelRaw = results[1] as List<dynamic>;
+
+      final rideTiles = rideVehicles.where((v) => v.isActive).map((v) {
+        return _ServiceTileModel(
+          title: v.name,
+          subtitle: 'From ₹${v.baseFare.toStringAsFixed(0)}',
+          assetPath: _assetForServiceName(v.name),
+          rideType: v.name,
+          group: _ServiceGroup.ride,
+        );
+      }).toList();
+
+      final deliveryTiles = parcelRaw
+          .whereType<Map<String, dynamic>>()
+          .map((m) {
+            final name = (m['name'] ?? m['title'] ?? 'Parcel').toString();
+            return _ServiceTileModel(
+              title: name,
+              subtitle: 'Delivery service',
+              assetPath: _assetForServiceName(name),
+              rideType: name,
+              group: _ServiceGroup.delivery,
+            );
+          })
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _apiTiles = [...rideTiles, ...deliveryTiles];
+        _loadingServices = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingServices = false);
+      debugPrint('Services API error: $e');
+    }
   }
 
   @override
@@ -238,7 +303,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   void _showBookRideSheet() {
     if (_selectedService == null) return;
-    final tile = _serviceTiles
+    final base = _apiTiles.isNotEmpty ? _apiTiles : _fallbackTiles;
+    final tile = base
         .where((t) => t.title == _selectedService || t.rideType == _selectedService)
         .cast<_ServiceTileModel?>()
         .firstWhere((_) => true, orElse: () => null);
@@ -406,7 +472,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
   }
 
   Widget _servicesGrid(_ServiceGroup group) {
-    final tiles = _serviceTiles.where((t) => t.group == group).toList();
+    final base = _apiTiles.isNotEmpty ? _apiTiles : _fallbackTiles;
+    final tiles = base.where((t) => t.group == group).toList();
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

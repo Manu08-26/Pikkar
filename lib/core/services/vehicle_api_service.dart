@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import '../models/api_models.dart';
 
 /// Vehicle Types API Service
 /// Handles ride vehicle types API calls
@@ -7,8 +8,32 @@ class VehicleTypesApiService {
   
   /// Get all active ride vehicle types
   /// Returns: Array of vehicles with pricing and capacity
-  Future<List<dynamic>> getActive() async {
-    return await _client.get('/vehicle-types/active');
+  Future<List<VehicleType>> getActive() async {
+    try {
+      // Try /vehicle-types/active first, then fallback to /vehicle-types
+      dynamic response;
+      try {
+        response = await _client.get('/vehicle-types/active');
+      } catch (e) {
+        response = await _client.get('/vehicle-types');
+      }
+      
+      if (response is Map<String, dynamic>) {
+        if (response.containsKey('data')) {
+          final List<dynamic> data = response['data'] ?? [];
+          return data.map((json) => VehicleType.fromJson(json as Map<String, dynamic>)).toList();
+        }
+      }
+      
+      if (response is List) {
+        return response.map((json) => VehicleType.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      
+      return <VehicleType>[];
+    } catch (e) {
+      print('Error in getActive: $e');
+      return <VehicleType>[];
+    }
   }
   
   /// Calculate ride fare
@@ -35,7 +60,17 @@ class ParcelVehiclesApiService {
   
   /// Get all active parcel delivery vehicles
   Future<List<dynamic>> getActive() async {
-    return await _client.get('/parcel-vehicles/active');
+    try {
+      final response = await _client.get('/parcel-vehicles/active');
+      if (response is Map<String, dynamic> && response.containsKey('data')) {
+        return response['data'] as List<dynamic>? ?? [];
+      }
+      if (response is List) return response;
+      return [];
+    } catch (e) {
+      print('Error in ParcelVehicles.getActive: $e');
+      return [];
+    }
   }
   
   /// Find suitable vehicles for parcel dimensions

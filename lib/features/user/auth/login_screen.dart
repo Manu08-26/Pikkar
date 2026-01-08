@@ -4,7 +4,6 @@ import 'package:geolocator/geolocator.dart';
 import 'otp_verification_screen.dart';
 import '../home/home_screen.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/localization/app_localizations.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/utils/responsive.dart';
 
@@ -142,7 +141,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
     return Directionality(
       textDirection: _appTheme.textDirection,
       child: Scaffold(

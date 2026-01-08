@@ -8,11 +8,11 @@ import 'rate_rides_screen.dart';
 import 'wallet_screen.dart';
 import 'saved_addresses_screen.dart';
 import 'help_support_screen.dart';
-import '../../../core/services/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'edit_profile_screen.dart';
 import 'profile_store.dart';
+import 'package:pikkar/core/services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -33,6 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _appTheme.addListener(_onThemeChanged);
     _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncProfileFromApi());
   }
 
   @override
@@ -54,6 +55,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _phone = data['phone'] ?? '';
       _email = data['email'] ?? '';
     });
+  }
+
+  Future<void> _syncProfileFromApi() async {
+    try {
+      final res = await PikkarApi.auth.getProfile();
+      // expected: { user: {...} } or user object itself
+      final user = (res['user'] is Map<String, dynamic>) ? res['user'] as Map<String, dynamic> : res;
+      final firstName = (user['firstName'] ?? '').toString().trim();
+      final lastName = (user['lastName'] ?? '').toString().trim();
+      final fullName = (user['name'] ?? '').toString().trim();
+      String first = firstName;
+      String last = lastName;
+      if (first.isEmpty && last.isEmpty && fullName.isNotEmpty) {
+        final parts = fullName.split(RegExp(r'\s+'));
+        first = parts.isNotEmpty ? parts.first : '';
+        last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+      }
+      final phone = (user['phone'] ?? '').toString();
+      final email = (user['email'] ?? '').toString();
+
+      await ProfileStore.save(
+        firstName: first,
+        lastName: last,
+        phone: phone,
+        email: email,
+      );
+      await _loadProfile();
+    } catch (_) {
+      // ignore if not logged in / server unavailable
+    }
   }
 
   void _showLogoutDialog() {
@@ -81,7 +112,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () {
-              ApiClient.removeToken();
+              // Prefer backend logout; always clear local token.
+              PikkarApi.auth.logout().catchError((_) {});
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(

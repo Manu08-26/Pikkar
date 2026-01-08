@@ -1,16 +1,29 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// API Client for Pikkar Backend
 /// Base HTTP client with interceptors and token management
 class ApiClient {
-  // Backend API URL - Change based on environment
-  static const String _baseUrl = 'http://localhost:5001/api/v1'; // Development
-  
-  // For Android Emulator: 'http://10.0.2.2:5001/api/v1'
-  // For Physical Device: 'http://YOUR_IP_ADDRESS:5001/api/v1'
-  // For Production: 'https://api.pikkar.com/api/v1'
+  /// Backend API URL - choose based on platform.
+  /// - Android Emulator: 10.0.2.2
+  /// - iOS Simulator / Desktop: localhost
+  /// - Physical device: change to your machine IP if server runs on your laptop
+  static String get _baseUrl {
+    // Runtime override:
+    // flutter run --dart-define=PIKKAR_API_BASE_URL=http://192.168.1.10:5001/api/v1
+    const override = String.fromEnvironment('PIKKAR_API_BASE_URL');
+    if (override.isNotEmpty) return override;
+
+    // Pikkar backend
+    // - Web/iOS/Desktop uses localhost
+    // - Android emulator uses 10.0.2.2
+    if (kIsWeb) return 'http://localhost:5001/api/v1';
+    if (Platform.isAndroid) return 'http://10.0.2.2:5001/api/v1';
+    return 'http://localhost:5001/api/v1';
+  }
   
   static const Duration _timeout = Duration(seconds: 15);
   
@@ -42,12 +55,22 @@ class ApiClient {
       print('Error saving token: $e');
     }
   }
+
+  static Future<void> saveRefreshToken(String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('refreshToken', token);
+    } catch (e) {
+      print('Error saving refresh token: $e');
+    }
+  }
   
   /// Remove auth token
   static Future<void> removeToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('userToken');
+      await prefs.remove('refreshToken');
       await prefs.remove('userData');
     } catch (e) {
       print('Error removing token: $e');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import 'profile_store.dart';
+import 'package:pikkar/core/services/api_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -77,6 +78,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     try {
+      // Try backend update if logged in; ignore errors and still save locally.
+      final fullName =
+          '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim();
+      // Fire and forget (don't block local save).
+      try {
+        await PikkarApi.auth.updateProfile(
+          name: fullName.isNotEmpty ? fullName : null,
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+        );
+      } catch (_) {}
+
       await ProfileStore.save(
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,

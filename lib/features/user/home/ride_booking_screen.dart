@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_theme.dart';
 import 'finding_driver_screen.dart';
+import 'package:pikkar/core/models/api_models.dart';
+import 'package:pikkar/core/services/api_service.dart';
 
 import 'drop_screen.dart';
 
@@ -36,7 +38,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
   final AppTheme _appTheme = AppTheme();
   GoogleMapController? _mapController;
   late String _selectedRideType; // Bike, Auto, Cab, SUV, Prime Cab
-  final List<String> _rideTypes = ['Bike', 'Auto', 'Cab', 'SUV'];
+  List<String> _rideTypes = ['Bike', 'Auto', 'Cab', 'SUV'];
   PageController? _rideTypePageController;
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
@@ -54,10 +56,16 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
   LatLng? _dropLatLng;
   bool _isLoading = false;
   List<Map<String, dynamic>> _searchResults = [];
+  // ignore: unused_field
   bool _showPickupSearch = false;
+  // ignore: unused_field
   bool _showDropSearch = false;
   FocusNode _pickupFocusNode = FocusNode();
   FocusNode _dropFocusNode = FocusNode();
+  bool _loadingVehicleTypes = false;
+  Map<String, VehicleType> _apiVehicleByName = {};
+  bool _vehicleTypesRequested = false;
+  String? _vehicleTypesError;
 
   @override
   void initState() {
@@ -67,11 +75,8 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
     _initializeLocation();
     
     // Set selected ride type from widget parameter
-    _selectedRideType = widget.rideType;
-
-    if (!_rideTypes.contains(_selectedRideType)) {
-      _rideTypes.insert(0, _selectedRideType);
-    }
+    _selectedRideType = _rideTypes.contains(widget.rideType) ? widget.rideType : _rideTypes.first;
+    _loadVehicleTypes(); // fetch live pricing from backend
     final initialIndex =
         _rideTypes.indexOf(_selectedRideType).clamp(0, _rideTypes.length - 1);
     _rideTypePageController ??= PageController(
@@ -122,6 +127,55 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
 
   void _onThemeChanged() {
     setState(() {});
+  }
+
+  Future<void> _loadVehicleTypes() async {
+    if (_loadingVehicleTypes) return;
+    _vehicleTypesRequested = true;
+    setState(() => _loadingVehicleTypes = true);
+    try {
+      final vehicles = await PikkarApi.vehicleTypes.getActive();
+
+      if (!mounted) return;
+      setState(() {
+        _vehicleTypesError = null;
+        _apiVehicleByName = {for (final v in vehicles) v.name: v};
+        if (vehicles.isNotEmpty) {
+          _rideTypes = vehicles.map((v) => v.name).toList();
+        }
+
+        // Prefer the incoming ride type (if present in API list)
+        if (_rideTypes.contains(widget.rideType)) {
+          _selectedRideType = widget.rideType;
+        } else if (!_rideTypes.contains(_selectedRideType)) {
+          _selectedRideType = _rideTypes.isNotEmpty ? _rideTypes.first : 'Bike';
+        }
+
+        // Recreate controller so the list highlights correct selection
+        _rideTypePageController?.dispose();
+        _rideTypePageController = null;
+        _loadingVehicleTypes = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _vehicleTypesError = 'Unable to load live prices';
+        _loadingVehicleTypes = false;
+      });
+      debugPrint('Vehicle types API error: $e');
+    }
+  }
+
+  String _assetForRideName(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('bike')) return 'assets/All Icons Set-Pikkar_Bike.png';
+    if (n.contains('auto')) return 'assets/All Icons Set-Pikkar_Auto.png';
+    if (n.contains('cab') || n.contains('car') || n.contains('sedan')) {
+      return 'assets/All Icons Set-Pikkar_Cab.png';
+    }
+    if (n.contains('suv')) return 'assets/All Icons Set-Pikkar_Cab.png';
+    if (n.contains('parcel')) return 'assets/All Icons Set-Pikkar_Parcel Bike.png';
+    return 'assets/All Icons Set-Pikkar_Bike.png';
   }
 
   Future<void> _initializeLocation() async {
@@ -215,6 +269,7 @@ void _onEditDrop() async {
 
 
 
+  // ignore: unused_element
   Widget _locationChip({
     required String label,
     required Color color,
@@ -757,6 +812,7 @@ void _onEditDrop() async {
     }
   }
 
+  // ignore: unused_element
   Future<void> _searchPlaces(String query, bool isPickup) async {
     if (query.isEmpty) {
       setState(() {
@@ -806,6 +862,7 @@ void _onEditDrop() async {
     }
   }
 
+  // ignore: unused_element
   Future<void> _selectPlace(Map<String, dynamic> prediction, bool isPickup) async {
     setState(() {
       _isLoading = true;
@@ -879,6 +936,7 @@ void _onEditDrop() async {
     });
   }
 
+  // ignore: unused_element
   void _swapLocations() {
     final tempText = _pickupController.text;
     _pickupController.text = _dropController.text;
@@ -891,6 +949,7 @@ void _onEditDrop() async {
     _initializeMap();
   }
 
+  // ignore: unused_element
   void _useCurrentLocation() async {
     if (_currentLocation != null) {
       setState(() {
@@ -937,6 +996,7 @@ void _onEditDrop() async {
   }
 
   /// Navigate to DropScreen to add a stop location
+  // ignore: unused_element
   void _showAddStopSheet() async {
     final result = await Navigator.push(
       context,
@@ -972,53 +1032,30 @@ void _onEditDrop() async {
   }
 
   Map<String, dynamic> _getRideDetails(String rideType) {
-    switch (rideType) {
-      case 'Bike':
-        return {
-          'image': 'assets/All Icons Set-Pikkar_Bike.png',
-          'time': '2 min',
-          'passengers': '1 seat',
-          'price': '₹65',
-          'icon': Icons.two_wheeler,
-          'tagline': 'Ride Easy. Book Fast.',
-        };
-      case 'Auto':
-        return {
-          'image': 'assets/All Icons Set-Pikkar_Auto.png',
-          'time': '2 min',
-          'passengers': '3 seats',
-          'price': '₹90',
-          'icon': Icons.airport_shuttle,
-        };
-      case 'Cab':
-        return {
-          'image': 'assets/All Icons Set-Pikkar_Cab.png',
-          'time': '2 min',
-          'passengers': '4 seats',
-          'price': '₹180',
-          'icon': Icons.directions_car,
-        };
-      case 'SUV':
-        return {
-          'image': 'assets/All Icons Set-Pikkar_Parcel Bike.png',
-          'time': '2 min',
-          'passengers': '5 seats',
-          'price': '₹245',
-          'icon': Icons.directions_car,
-        };
-      default:
-        return {
-          'image': 'assets/All Icons Set-Pikkar_Bike.png',
-          'time': '2 min',
-          'passengers': '1 seat',
-          'price': '₹65',
-          'icon': Icons.two_wheeler,
-        };
-    }
+    final apiVehicle = _apiVehicleByName[rideType];
+    final apiPrice = apiVehicle != null ? '₹${apiVehicle.baseFare.toStringAsFixed(0)}' : null;
+    final apiSeats = apiVehicle != null
+        ? '${apiVehicle.capacity} ${apiVehicle.capacity == 1 ? 'seat' : 'seats'}'
+        : null;
+    // No demo fallback prices. If API isn't loaded, show placeholders.
+    return {
+      'image': _assetForRideName(rideType),
+      'time': '2 min',
+      'passengers': apiSeats ?? '—',
+      'price': apiPrice ?? (_loadingVehicleTypes ? '...' : '—'),
+      'icon': Icons.directions_car,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
+    // Hot-reload safe: initState won't rerun, so ensure we fetch vehicles at least once.
+    if (!_vehicleTypesRequested && !_loadingVehicleTypes) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_loadingVehicleTypes) _loadVehicleTypes();
+      });
+    }
+
     // Hot-reload safe: when new fields are added, initState doesn't rerun.
     _rideTypePageController ??= PageController(
       initialPage: _rideTypes.indexOf(_selectedRideType).clamp(0, _rideTypes.length - 1),
@@ -1179,15 +1216,56 @@ void _onEditDrop() async {
 
                       // Carousel content (scrollable)
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-                          child: Column(
-                            children: _rideTypes.map((rideType) {
-                              return _buildRideListCard(
-                                rideType,
-                                isSelected: _selectedRideType == rideType,
-                              );
-                            }).toList(),
+                        child: RefreshIndicator(
+                          color: _appTheme.brandRed,
+                          onRefresh: _loadVehicleTypes,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                            child: Column(
+                              children: [
+                                if (_vehicleTypesError != null)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    decoration: BoxDecoration(
+                                      color: _appTheme.brandRed.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _appTheme.brandRed.withOpacity(0.2),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.error_outline, color: _appTheme.brandRed),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            _vehicleTypesError!,
+                                            style: TextStyle(color: _appTheme.textColor),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: _loadVehicleTypes,
+                                          child: const Text('Retry'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_loadingVehicleTypes)
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 10),
+                                    child: LinearProgressIndicator(minHeight: 2),
+                                  ),
+                                ..._rideTypes.map((rideType) {
+                                  return _buildRideListCard(
+                                    rideType,
+                                    isSelected: _selectedRideType == rideType,
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1309,6 +1387,7 @@ void _onEditDrop() async {
     );
   }
 
+  // ignore: unused_element
   Widget _buildRideCarouselCard(String rideType, {required bool isSelected}) {
     final details = _getRideDetails(rideType);
     final size = isSelected ? 150.0 : 130.0;

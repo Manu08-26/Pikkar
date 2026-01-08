@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'cancel_ride_reasons_screen.dart';
 import 'driver_details_screen.dart';
 import '../../../core/theme/app_theme.dart';
+import 'package:pikkar/core/services/api_service.dart';
 
 class FindingDriverScreen extends StatefulWidget {
   final String pickupLocation;
@@ -31,11 +32,14 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
   Timer? _findingTimer;
+  bool _creatingRide = false;
+  String? _rideId;
 
   @override
   void initState() {
     super.initState();
     _initializeMap();
+    _createRideIfPossible();
     _startFindingDriver();
   }
 
@@ -126,6 +130,42 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
       }
     });
   }
+
+  Future<void> _createRideIfPossible() async {
+    if (_creatingRide) return;
+    if (widget.pickupLatLng == null || widget.dropLatLng == null) return;
+    setState(() => _creatingRide = true);
+    try {
+      final res = await PikkarApi.rides.create(
+        vehicleType: widget.rideType,
+        pickup: {
+          'latitude': widget.pickupLatLng!.latitude,
+          'longitude': widget.pickupLatLng!.longitude,
+          'address': widget.pickupLocation,
+          'name': widget.pickupLocation,
+        },
+        dropoff: {
+          'latitude': widget.dropLatLng!.latitude,
+          'longitude': widget.dropLatLng!.longitude,
+          'address': widget.dropLocation,
+          'name': widget.dropLocation,
+        },
+        paymentMethod: 'cash',
+      );
+
+      final rideObj = (res['ride'] is Map<String, dynamic>) ? res['ride'] as Map<String, dynamic> : res;
+      final id = (rideObj['_id'] ?? rideObj['id'] ?? '').toString();
+      if (!mounted) return;
+      setState(() {
+        _rideId = id.isNotEmpty ? id : null;
+        _creatingRide = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _creatingRide = false);
+      debugPrint('Create ride API failed: $e');
+    }
+  }
   
   void _navigateToDriverDetails() {
     // Mock ride details
@@ -137,6 +177,7 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
       'price': '₹120',
       'distance': '5.2 km',
       'duration': '15 mins',
+      if (_rideId != null) 'rideId': _rideId,
     };
     
     Navigator.pushReplacement(
@@ -169,6 +210,10 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
     
     // If cancellation was confirmed, go back to ride booking screen
     if (result == true && mounted) {
+      if (_rideId != null) {
+        // Fire and forget cancel API
+        PikkarApi.rides.cancel(rideId: _rideId!, reason: 'User cancelled').catchError((_) => <String, dynamic>{});
+      }
       Navigator.pop(context); // Pop finding driver screen to go back to ride booking screen
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -202,8 +247,8 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                   target: widget.pickupLatLng ?? const LatLng(17.4175, 78.4934),
                   zoom: 14.0,
                 ),
-                markers: const {},
-                polylines: const {},
+                markers: _markers,
+                polylines: _polylines,
                 myLocationEnabled: true,
                 myLocationButtonEnabled: false,
                 mapType: MapType.normal,
@@ -217,6 +262,43 @@ class _FindingDriverScreenState extends State<FindingDriverScreen> {
                 tiltGesturesEnabled: true,
                 zoomGesturesEnabled: true,
               ),
+
+              if (_creatingRide)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,
+                  left: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: const [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Creating ride...',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
             // Fixed Bottom Sheet (not draggable)
             Positioned(

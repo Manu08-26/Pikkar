@@ -26,8 +26,10 @@ class DropScreen extends StatefulWidget {
 }
 
 class _DropScreenState extends State<DropScreen> {
+  // ignore: unused_field
   LatLng? _selectedLatLng;
-String _selectedPlaceName = '';
+  // ignore: unused_field
+  String _selectedPlaceName = '';
   bool _showAddStopRow = false; // Initially hidden, shown when "Add stops" clicked
 
   final AppTheme _appTheme = AppTheme();
@@ -40,8 +42,11 @@ String _selectedPlaceName = '';
   List<Map<String, dynamic>> _dropSearchResults = [];
   List<Map<String, dynamic>> _addStopSearchResults = [];
   bool _pickupUserInteracted = false;
+  // ignore: unused_field
   bool _isSearchingPickup = false;
+  // ignore: unused_field
   bool _isSearchingDrop = false;
+  // ignore: unused_field
   bool _isSearchingAddStop = false;
   bool _showPickupSearch = false;
   bool _showDropSearch = false;
@@ -53,6 +58,7 @@ String _selectedPlaceName = '';
   String? _selectedLocationName;
   final List<Map<String, String>> _recentDrops = [];
   String _currentLocationName = "Current Location";
+  // ignore: unused_field
   String _selectedForMe = "For me";
   static const String _apiKey = 'AIzaSyAT3wIjV73qVXPAlgkyifnns38GztnbNF4';
 
@@ -240,6 +246,7 @@ String _selectedPlaceName = '';
 
   Future<void> _searchPlaces(String query, bool isPickup) async {
     if (query.isEmpty) {
+      if (!mounted) return;
       setState(() {
         if (isPickup) {
           _pickupSearchResults = [];
@@ -250,6 +257,7 @@ String _selectedPlaceName = '';
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       if (isPickup) {
         _isSearchingPickup = true;
@@ -297,6 +305,7 @@ String _selectedPlaceName = '';
           }
         }
         
+        if (!mounted) return;
         setState(() {
           if (isPickup) {
             _pickupSearchResults = results;
@@ -307,6 +316,7 @@ String _selectedPlaceName = '';
           }
         });
       } else {
+        if (!mounted) return;
         setState(() {
           if (isPickup) {
             _isSearchingPickup = false;
@@ -316,6 +326,7 @@ String _selectedPlaceName = '';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         if (isPickup) {
           _isSearchingPickup = false;
@@ -328,12 +339,14 @@ String _selectedPlaceName = '';
 
   Future<void> _searchPlacesForAddStop(String query) async {
     if (query.isEmpty) {
+      if (!mounted) return;
       setState(() {
         _addStopSearchResults = [];
       });
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _isSearchingAddStop = true;
     });
@@ -375,16 +388,19 @@ String _selectedPlaceName = '';
           }
         }
         
+        if (!mounted) return;
         setState(() {
           _addStopSearchResults = results;
           _isSearchingAddStop = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _isSearchingAddStop = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isSearchingAddStop = false;
       });
@@ -1294,6 +1310,7 @@ String _selectedPlaceName = '';
     );
   }
 
+  // ignore: unused_element
   Widget _suggestedLocationItem(String location, {bool isSelected = false, VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,

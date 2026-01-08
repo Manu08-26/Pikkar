@@ -48,6 +48,13 @@ static const String _baseUrl = 'http://192.168.1.100:5001/api/v1';
 static const String _baseUrl = 'https://api.pikkar.com/api/v1';
 ```
 
+#### ✅ Recommended (no code changes): `--dart-define`
+If you are testing on a **real Android device**, run with:
+
+```bash
+flutter run --dart-define=PIKKAR_API_BASE_URL=http://<YOUR_LAPTOP_IP>:5001/api/v1
+```
+
 ## 📖 Usage Examples
 
 ### Authentication

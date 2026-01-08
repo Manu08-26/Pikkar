@@ -50,14 +50,29 @@ class _ApiLoginExampleScreenState extends State<ApiLoginExampleScreen> {
       );
 
       // Save token and user data
-      await PikkarApi.saveToken(response['token']);
-      await PikkarApi.saveUserData(response['user']);
+      if (response['token'] != null) {
+        await PikkarApi.saveToken(response['token']);
+      }
+      if (response['refreshToken'] != null) {
+        await ApiClient.saveRefreshToken(response['refreshToken']);
+      }
+      if (response['user'] != null) {
+        await PikkarApi.saveUserData(response['user']);
+      }
 
       if (mounted) {
+        final user = (response['user'] is Map<String, dynamic>)
+            ? response['user'] as Map<String, dynamic>
+            : <String, dynamic>{};
+        final name = (user['name'] ??
+                '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'.trim())
+            .toString()
+            .trim();
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Welcome ${response['user']['name']}!'),
+            content: Text('Welcome ${name.isNotEmpty ? name : 'User'}!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -102,8 +117,15 @@ class _ApiLoginExampleScreenState extends State<ApiLoginExampleScreen> {
       );
 
       // Save token and user data
-      await PikkarApi.saveToken(response['token']);
-      await PikkarApi.saveUserData(response['user']);
+      if (response['token'] != null) {
+        await PikkarApi.saveToken(response['token']);
+      }
+      if (response['refreshToken'] != null) {
+        await ApiClient.saveRefreshToken(response['refreshToken']);
+      }
+      if (response['user'] != null) {
+        await PikkarApi.saveUserData(response['user']);
+      }
 
       if (mounted) {
         // Show success message

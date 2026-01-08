@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'core/services/api_service.dart';
+import 'core/models/api_models.dart';
 
 // ============================================
 // EXAMPLE 1: Login Screen with Email/Password
@@ -154,7 +155,7 @@ class ExampleVehicleSelection extends StatefulWidget {
 }
 
 class _ExampleVehicleSelectionState extends State<ExampleVehicleSelection> {
-  List<dynamic> _vehicles = [];
+  List<VehicleType> _vehicles = [];
   bool _isLoading = true;
   
   @override
@@ -215,10 +216,10 @@ class _ExampleVehicleSelectionState extends State<ExampleVehicleSelection> {
       itemBuilder: (context, index) {
         final vehicle = _vehicles[index];
         return ListTile(
-          title: Text(vehicle['name']),
-          subtitle: Text('Base fare: ₹${vehicle['baseFare']}'),
+          title: Text(vehicle.name),
+          subtitle: Text('Base fare: ₹${vehicle.baseFare}'),
           trailing: const Icon(Icons.arrow_forward_ios),
-          onTap: () => _calculateFare(vehicle['_id']),
+          onTap: () => _calculateFare(vehicle.id),
         );
       },
     );

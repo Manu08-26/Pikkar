@@ -4,6 +4,8 @@ import '../profile/profile_screen.dart';
 import '../common/notifications.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
+import 'package:pikkar/core/services/api_service.dart';
+import 'package:pikkar/core/models/api_models.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -14,11 +16,15 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final AppTheme _appTheme = AppTheme();
+  bool _loading = false;
+  String? _error;
+  List<Ride> _rides = [];
 
   @override
   void initState() {
     super.initState();
     _appTheme.addListener(_onThemeChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRides());
   }
 
   @override
@@ -29,6 +35,142 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   void _onThemeChanged() {
     setState(() {});
+  }
+
+  Future<void> _loadRides() async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final raw = await PikkarApi.rides.getMyRides();
+      final rides = raw
+          .whereType<Map<String, dynamic>>()
+          .map(Ride.fromJson)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _rides = rides;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Unable to load rides';
+        _loading = false;
+      });
+    }
+  }
+
+  String _fmtLocation(Location loc) {
+    final name = (loc.name ?? '').trim();
+    final addr = (loc.address ?? '').trim();
+    if (name.isNotEmpty) return name;
+    if (addr.isNotEmpty) return addr;
+    return '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)}';
+  }
+
+  Widget _rideCard(Ride ride) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _appTheme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _appTheme.dividerColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  ride.vehicleType,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _appTheme.textColor,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _appTheme.brandRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  ride.status,
+                  style: TextStyle(
+                    color: _appTheme.brandRed,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.circle, size: 10, color: Colors.green),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _fmtLocation(ride.pickup),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _appTheme.textGrey),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.circle, size: 10, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _fmtLocation(ride.dropoff),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _appTheme.textGrey),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                '₹${(ride.fare ?? 0).toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: _appTheme.textColor,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${ride.createdAt}',
+                style: TextStyle(fontSize: 12, color: _appTheme.textGrey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -74,47 +216,86 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(width: 8),
           ],
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        body: RefreshIndicator(
+          color: _appTheme.brandRed,
+          onRefresh: _loadRides,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              // No History Message
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 60),
-                decoration: BoxDecoration(
-                  color: _appTheme.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _appTheme.dividerColor, width: 1),
+              if (_loading)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    color: _appTheme.brandRed,
+                    backgroundColor: Colors.grey.shade200,
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.history,
-                      size: 64,
-                      color: _appTheme.textGrey,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations.noRideHistory,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: _appTheme.textColor,
+              if (_error != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _appTheme.brandRed.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _appTheme.brandRed.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: _appTheme.brandRed),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: TextStyle(color: _appTheme.textColor),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      localizations.rideHistoryWillAppear,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _appTheme.textGrey,
+                      TextButton(
+                        onPressed: _loadRides,
+                        child: const Text('Retry'),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              if (!_loading && _error == null && _rides.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  decoration: BoxDecoration(
+                    color: _appTheme.cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _appTheme.dividerColor, width: 1),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.history, size: 64, color: _appTheme.textGrey),
+                      const SizedBox(height: 16),
+                      Text(
+                        localizations.noRideHistory,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: _appTheme.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        localizations.rideHistoryWillAppear,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _appTheme.textGrey,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              if (_rides.isNotEmpty) ...[
+                ..._rides.map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _rideCard(r),
+                    )),
+              ],
             ],
           ),
         ),

@@ -15,8 +15,9 @@ import '../profile/profile_screen.dart';
 import '../history/history_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
-import 'ride_booking_screen.dart';
 import '../../../core/utils/responsive.dart';
+import 'package:pikkar/core/services/api_service.dart';
+import 'package:pikkar/core/models/api_models.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const int _maxRetries = 3;
   String? _selectedDeliveryService; // Track selected delivery service
   final List<Map<String, String>> _recentDrops = [];
+  bool _isLoadingHomeServices = false;
+  List<VehicleType> _rideVehicles = [];
+  List<dynamic> _parcelVehicles = [];
 
   @override
   void initState() {
@@ -58,7 +62,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _getCurrentLocation();
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadHomeServices();
+    });
     _loadRecentDrops();
+  }
+
+  String _assetForServiceName(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('bike')) return 'assets/All Icons Set-Pikkar_Bike.png';
+    if (n.contains('auto')) return 'assets/All Icons Set-Pikkar_Auto.png';
+    if (n.contains('cab') || n.contains('car')) return 'assets/All Icons Set-Pikkar_Cab.png';
+    if (n.contains('parcel')) return 'assets/All Icons Set-Pikkar_Parcel Bike.png';
+    if (n.contains('truck') || n.contains('tempo') || n.contains('freight')) {
+      return 'assets/All Icons Set-Pikkar_Tempo.png';
+    }
+    return 'assets/logo_red.png';
+  }
+
+  Future<void> _loadHomeServices() async {
+    if (_isLoadingHomeServices) return;
+    setState(() => _isLoadingHomeServices = true);
+    try {
+      final results = await Future.wait([
+        PikkarApi.vehicleTypes.getActive(),
+        PikkarApi.parcelVehicles.getActive(),
+      ]);
+
+      final rideVehicles = results[0] as List<VehicleType>;
+      final parcelRaw = results[1] as List<dynamic>;
+
+      if (!mounted) return;
+      setState(() {
+        _rideVehicles = rideVehicles;
+        _parcelVehicles = parcelRaw;
+        _isLoadingHomeServices = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingHomeServices = false);
+      // keep fallback UI
+      debugPrint('Home services API error: $e');
+    }
   }
 
   void _loadRecentDrops() {
@@ -711,6 +756,66 @@ Widget build(BuildContext context) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Ride services from backend
+                  // Text(
+                  //   'Ride Services',
+                  //   style: TextStyle(
+                  //     fontSize: Responsive.fontSize(context, 14),
+                  //     fontWeight: FontWeight.w600,
+                  //   ),
+                  // ),
+                  // SizedBox(height: Responsive.spacing(context, 16)),
+                  // if (_isLoadingHomeServices && _rideVehicles.isEmpty)
+                  //   Padding(
+                  //     padding: const EdgeInsets.symmetric(vertical: 8),
+                  //     child: LinearProgressIndicator(
+                  //       minHeight: 2,
+                  //       color: _appTheme.brandRed,
+                  //       backgroundColor: Colors.grey.shade200,
+                  //     ),
+                  //   ),
+                  // SingleChildScrollView(
+                  //   scrollDirection: Axis.horizontal,
+                  //   child: Row(
+                  //     children: [
+                  //       if (_rideVehicles.isNotEmpty)
+                  //         ..._rideVehicles.take(6).map((v) {
+                  //           return Padding(
+                  //             padding: EdgeInsets.only(right: Responsive.spacing(context, 20)),
+                  //             child: _rideOption(
+                  //               v.name,
+                  //               _assetForServiceName(v.name),
+                  //               () {
+                  //                 Navigator.push(
+                  //                   context,
+                  //                   MaterialPageRoute(
+                  //                     builder: (_) => DropScreen(rideType: v.name),
+                  //                   ),
+                  //                 );
+                  //               },
+                  //             ),
+                  //           );
+                  //         }).toList()
+                  //       else ...[
+                  //         // Fallback static tiles
+                  //         _rideOption('Bike', 'assets/All Icons Set-Pikkar_Bike.png', () {
+                  //           Navigator.push(context, MaterialPageRoute(builder: (_) => DropScreen(rideType: 'Bike')));
+                  //         }),
+                  //         SizedBox(width: Responsive.spacing(context, 20)),
+                  //         _rideOption('Auto', 'assets/All Icons Set-Pikkar_Auto.png', () {
+                  //           Navigator.push(context, MaterialPageRoute(builder: (_) => DropScreen(rideType: 'Auto')));
+                  //         }),
+                  //         SizedBox(width: Responsive.spacing(context, 20)),
+                  //         _rideOption('Cab', 'assets/All Icons Set-Pikkar_Cab.png', () {
+                  //           Navigator.push(context, MaterialPageRoute(builder: (_) => DropScreen(rideType: 'Cab')));
+                  //         }),
+                  //       ],
+                  //     ],
+                  //   ),
+                  // ),
+
+                  // SizedBox(height: Responsive.spacing(context, 24)),
+
                   Text(
                     'Delivery Services',
                     style: TextStyle(
@@ -724,34 +829,48 @@ Widget build(BuildContext context) {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        
-                        _rideOption('Parcel', 'assets/All Icons Set-Pikkar_Parcel Bike.png', () {
-                          print('🔵 Parcel tapped!');
-                          try {
+                        if (_parcelVehicles.isNotEmpty)
+                          ..._parcelVehicles.take(6).map((raw) {
+                            final map = raw is Map ? raw : const {};
+                            final name = (map['name'] ?? map['title'] ?? 'Parcel').toString();
+                            return Padding(
+                              padding: EdgeInsets.only(right: Responsive.spacing(context, 20)),
+                              child: _rideOption(
+                                name,
+                                _assetForServiceName(name),
+                                () {
+                                  setState(() {
+                                    _selectedDeliveryService = name;
+                                  });
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ParcelDeliveryScreen(serviceType: name),
+                                    ),
+                                  ).then((_) {
+                                    if (!mounted) return;
+                                    setState(() => _selectedDeliveryService = null);
+                                  });
+                                },
+                                isSelected: _selectedDeliveryService == name,
+                              ),
+                            );
+                          }).toList()
+                        else ...[
+                          // Fallback to existing Parcel tile
+                          _rideOption('Parcel', 'assets/All Icons Set-Pikkar_Parcel Bike.png', () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) {
-                                  print('🔵 Building ParcelDeliveryScreen');
-                                  return const ParcelDeliveryScreen(
-                                    serviceType: 'Parcel',
-                                  );
-                                },
+                                builder: (_) => const ParcelDeliveryScreen(serviceType: 'Parcel'),
                               ),
                             ).then((_) {
-                              print('🔵 Navigation completed');
-                          setState(() {
-                                _selectedDeliveryService = null;
-                              });
-                            }).catchError((error) {
-                              print('❌ Navigation error: $error');
-                          });
-                          } catch (e, stackTrace) {
-                            print('❌ Error navigating: $e');
-                            print('Stack trace: $stackTrace');
-                          }
-                        }, isSelected: _selectedDeliveryService == 'Parcel'),
-                        SizedBox(width: Responsive.spacing(context, 20)),
+                              if (!mounted) return;
+                              setState(() => _selectedDeliveryService = null);
+                            });
+                          }, isSelected: _selectedDeliveryService == 'Parcel'),
+                          SizedBox(width: Responsive.spacing(context, 20)),
+                        ],
                         // _rideOption('Delivery', 'assets/All Icons Set-Pikkar_Tempo.png', () {
                         //   Navigator.push(
                         //     context,

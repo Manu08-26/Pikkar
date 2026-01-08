@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'api_service.dart';
 
 /// Integrated Auth Service
@@ -9,16 +10,23 @@ import 'api_service.dart';
 /// 2. Use Backend API for email/password authentication
 /// 3. Sync user data between Firebase and Backend
 class IntegratedAuthService {
-  final firebase_auth.FirebaseAuth _firebaseAuth = firebase_auth.FirebaseAuth.instance;
+  late final firebase_auth.FirebaseAuth _firebaseAuth;
   final AuthApiService _apiAuth = PikkarApi.auth;
+
+  IntegratedAuthService() {
+    // On web we do not use Firebase phone OTP in this app.
+    if (!kIsWeb) {
+      _firebaseAuth = firebase_auth.FirebaseAuth.instance;
+    }
+  }
   
   /// Current Firebase user
-  firebase_auth.User? get currentFirebaseUser => _firebaseAuth.currentUser;
+  firebase_auth.User? get currentFirebaseUser => kIsWeb ? null : _firebaseAuth.currentUser;
   
   /// Check if user is authenticated (either Firebase or API)
   Future<bool> isAuthenticated() async {
     // Check Firebase auth
-    if (_firebaseAuth.currentUser != null) {
+    if (!kIsWeb && _firebaseAuth.currentUser != null) {
       return true;
     }
     
@@ -37,6 +45,10 @@ class IntegratedAuthService {
     required Function(String) codeSent,
     required Function(String) error,
   }) async {
+    if (kIsWeb) {
+      error('Phone OTP is not available on Web. Please test on Android/iOS.');
+      return;
+    }
     await _firebaseAuth.verifyPhoneNumber(
       phoneNumber: phone,
       verificationCompleted: (firebase_auth.PhoneAuthCredential credential) async {
@@ -57,6 +69,9 @@ class IntegratedAuthService {
     required String verificationId,
     required String otp,
   }) async {
+    if (kIsWeb) {
+      throw UnsupportedError('Phone OTP is not available on Web.');
+    }
     final credential = firebase_auth.PhoneAuthProvider.credential(
       verificationId: verificationId,
       smsCode: otp,
@@ -84,6 +99,9 @@ class IntegratedAuthService {
       // Save token and user data
       if (response['token'] != null) {
         await PikkarApi.saveToken(response['token']);
+      }
+      if (response['refreshToken'] != null) {
+        await ApiClient.saveRefreshToken(response['refreshToken']);
       }
       if (response['user'] != null) {
         await PikkarApi.saveUserData(response['user']);
@@ -115,6 +133,9 @@ class IntegratedAuthService {
       // Save token and user data
       if (response['token'] != null) {
         await PikkarApi.saveToken(response['token']);
+      }
+      if (response['refreshToken'] != null) {
+        await ApiClient.saveRefreshToken(response['refreshToken']);
       }
       if (response['user'] != null) {
         await PikkarApi.saveUserData(response['user']);
@@ -167,7 +188,7 @@ class IntegratedAuthService {
   /// Logout from both Firebase and Backend API
   Future<void> logout() async {
     // Logout from Firebase
-    if (_firebaseAuth.currentUser != null) {
+    if (!kIsWeb && _firebaseAuth.currentUser != null) {
       await _firebaseAuth.signOut();
     }
     

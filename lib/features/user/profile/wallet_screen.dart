@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import 'package:pikkar/core/services/api_service.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -10,11 +11,16 @@ class WalletScreen extends StatefulWidget {
 
 class _WalletScreenState extends State<WalletScreen> {
   final AppTheme _appTheme = AppTheme();
+  bool _loading = false;
+  String? _error;
+  double _balance = 0;
+  List<dynamic> _transactions = [];
 
   @override
   void initState() {
     super.initState();
     _appTheme.addListener(_onThemeChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWallet());
   }
 
   @override
@@ -25,6 +31,41 @@ class _WalletScreenState extends State<WalletScreen> {
 
   void _onThemeChanged() {
     setState(() {});
+  }
+
+  Future<void> _loadWallet() async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final results = await Future.wait([
+        PikkarApi.wallet.getBalance(),
+        PikkarApi.wallet.getTransactions(limit: 20, skip: 0),
+      ]);
+      final bal = results[0] as Map<String, dynamic>;
+      final tx = results[1] as List<dynamic>;
+
+      if (!mounted) return;
+      setState(() {
+        _balance = (bal['balance'] ?? bal['amount'] ?? 0).toDouble();
+        _transactions = tx;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Unable to load wallet';
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -52,10 +93,48 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
+        body: RefreshIndicator(
+          color: _appTheme.brandRed,
+          onRefresh: _loadWallet,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
             children: [
+              if (_loading)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    color: _appTheme.brandRed,
+                    backgroundColor: Colors.grey.shade200,
+                  ),
+                ),
+              if (_error != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: _appTheme.brandRed.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _appTheme.brandRed.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: _appTheme.brandRed),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: TextStyle(color: _appTheme.textColor),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _loadWallet,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
               // Wallet Balance Card
               Container(
                 width: double.infinity,
@@ -79,7 +158,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '₹0',
+                      '₹${_balance.toStringAsFixed(0)}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -185,17 +264,39 @@ class _WalletScreenState extends State<WalletScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _appTheme.dividerColor, width: 1),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'No transactions yet',
-                    style: TextStyle(
-                      color: _appTheme.textGrey,
-                      fontSize: 14,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                child: _transactions.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No transactions yet',
+                          style: TextStyle(
+                            color: _appTheme.textGrey,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : Column(
+                        children: _transactions.take(5).map((t) {
+                          final m = t is Map ? t : const {};
+                          final title = (m['type'] ?? m['status'] ?? 'Transaction').toString();
+                          final amount = (m['amount'] ?? 0).toString();
+                          return ListTile(
+                            title: Text(title, style: TextStyle(color: _appTheme.textColor)),
+                            subtitle: Text(
+                              (m['createdAt'] ?? '').toString(),
+                              style: TextStyle(color: _appTheme.textGrey, fontSize: 12),
+                            ),
+                            trailing: Text(
+                              '₹$amount',
+                              style: TextStyle(
+                                color: _appTheme.textColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
               ),
             ],
           ),

@@ -47,9 +47,12 @@ class User {
   });
   
   factory User.fromJson(Map<String, dynamic> json) {
+    final first = (json['firstName'] ?? '').toString().trim();
+    final last = (json['lastName'] ?? '').toString().trim();
+    final derivedName = ('$first $last').trim();
     return User(
       id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
+      name: (json['name'] ?? derivedName ?? '').toString(),
       email: json['email'] ?? '',
       phone: json['phone'],
       role: json['role'] ?? 'user',
@@ -77,51 +80,157 @@ class User {
 class VehicleType {
   final String id;
   final String name;
+  final String code;
+  final String description;
   final String category;
-  final double baseFare;
-  final double perKmRate;
-  final double perMinuteRate;
-  final int capacity;
+  final String vehicleType;
+  final VehicleCapacity vehicleCapacity;
+  final VehiclePricing pricing;
   final String? icon;
+  final String? iconSideView;
+  final String? iconTopView;
+  final String? iconFrontView;
   final bool isActive;
+  final int order;
   
   VehicleType({
     required this.id,
     required this.name,
+    required this.code,
+    required this.description,
     required this.category,
-    required this.baseFare,
-    required this.perKmRate,
-    required this.perMinuteRate,
-    required this.capacity,
+    required this.vehicleType,
+    required this.vehicleCapacity,
+    required this.pricing,
     this.icon,
+    this.iconSideView,
+    this.iconTopView,
+    this.iconFrontView,
     required this.isActive,
+    required this.order,
   });
+  
+  // Legacy getters for backward compatibility
+  double get baseFare => pricing.baseFare;
+  double get perKmRate => pricing.perKmRate;
+  double get perMinuteRate => pricing.perMinuteRate;
+  int get capacity => vehicleCapacity.passengers;
   
   factory VehicleType.fromJson(Map<String, dynamic> json) {
     return VehicleType(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
+      code: json['code'] ?? '',
+      description: json['description'] ?? '',
       category: json['category'] ?? '',
-      baseFare: (json['baseFare'] ?? 0).toDouble(),
-      perKmRate: (json['perKmRate'] ?? 0).toDouble(),
-      perMinuteRate: (json['perMinuteRate'] ?? 0).toDouble(),
-      capacity: json['capacity'] ?? 1,
+      vehicleType: json['vehicleType'] ?? '',
+      vehicleCapacity: VehicleCapacity.fromJson(json['capacity'] ?? {}),
+      pricing: VehiclePricing.fromJson(json['pricing'] ?? {}),
       icon: json['icon'],
+      iconSideView: json['iconSideView'],
+      iconTopView: json['iconTopView'],
+      iconFrontView: json['iconFrontView'],
       isActive: json['isActive'] ?? false,
+      order: json['order'] ?? 0,
     );
   }
   
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'name': name,
+      'code': code,
+      'description': description,
       'category': category,
+      'vehicleType': vehicleType,
+      'capacity': vehicleCapacity.toJson(),
+      'pricing': pricing.toJson(),
+      'icon': icon,
+      'iconSideView': iconSideView,
+      'iconTopView': iconTopView,
+      'iconFrontView': iconFrontView,
+      'isActive': isActive,
+      'order': order,
+    };
+  }
+}
+
+class VehicleCapacity {
+  final int passengers;
+  final int luggage;
+
+  VehicleCapacity({
+    required this.passengers,
+    required this.luggage,
+  });
+
+  factory VehicleCapacity.fromJson(Map<String, dynamic> json) {
+    return VehicleCapacity(
+      passengers: json['passengers'] ?? 1,
+      luggage: json['luggage'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'passengers': passengers,
+      'luggage': luggage,
+    };
+  }
+}
+
+class VehiclePricing {
+  final double baseFare;
+  final double perKmRate;
+  final double perMinuteRate;
+  final double minimumFare;
+  final double bookingFee;
+  final double cancellationFee;
+  final double basePrice;
+  final double pricePerKm;
+  final double pricePerKg;
+  final double minimumPrice;
+
+  VehiclePricing({
+    required this.baseFare,
+    required this.perKmRate,
+    required this.perMinuteRate,
+    required this.minimumFare,
+    required this.bookingFee,
+    required this.cancellationFee,
+    required this.basePrice,
+    required this.pricePerKm,
+    required this.pricePerKg,
+    required this.minimumPrice,
+  });
+
+  factory VehiclePricing.fromJson(Map<String, dynamic> json) {
+    return VehiclePricing(
+      baseFare: (json['baseFare'] ?? 0).toDouble(),
+      perKmRate: (json['perKmRate'] ?? 0).toDouble(),
+      perMinuteRate: (json['perMinuteRate'] ?? 0).toDouble(),
+      minimumFare: (json['minimumFare'] ?? 0).toDouble(),
+      bookingFee: (json['bookingFee'] ?? 0).toDouble(),
+      cancellationFee: (json['cancellationFee'] ?? 0).toDouble(),
+      basePrice: (json['basePrice'] ?? 0).toDouble(),
+      pricePerKm: (json['pricePerKm'] ?? 0).toDouble(),
+      pricePerKg: (json['pricePerKg'] ?? 0).toDouble(),
+      minimumPrice: (json['minimumPrice'] ?? 0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
       'baseFare': baseFare,
       'perKmRate': perKmRate,
       'perMinuteRate': perMinuteRate,
-      'capacity': capacity,
-      'icon': icon,
-      'isActive': isActive,
+      'minimumFare': minimumFare,
+      'bookingFee': bookingFee,
+      'cancellationFee': cancellationFee,
+      'basePrice': basePrice,
+      'pricePerKm': pricePerKm,
+      'pricePerKg': pricePerKg,
+      'minimumPrice': minimumPrice,
     };
   }
 }
@@ -155,15 +264,18 @@ class Ride {
   });
   
   factory Ride.fromJson(Map<String, dynamic> json) {
+    final userId = json['userId'];
+    final driverId = json['driverId'];
+    final fareRaw = json['fare'] ?? json['estimatedFare'];
     return Ride(
       id: json['_id'] ?? json['id'] ?? '',
-      userId: json['userId'] ?? '',
-      driverId: json['driverId'],
+      userId: userId is String ? userId : (userId?['_id'] ?? userId?['id'] ?? '').toString(),
+      driverId: driverId is String ? driverId : (driverId?['_id'] ?? driverId?['id'])?.toString(),
       vehicleType: json['vehicleType'] ?? '',
-      pickup: Location.fromJson(json['pickup'] ?? {}),
-      dropoff: Location.fromJson(json['dropoff'] ?? {}),
-      status: json['status'] ?? 'pending',
-      fare: json['fare']?.toDouble(),
+      pickup: Location.fromJson((json['pickupLocation'] ?? json['pickup'] ?? {}) as Map<String, dynamic>),
+      dropoff: Location.fromJson((json['dropoffLocation'] ?? json['dropoff'] ?? {}) as Map<String, dynamic>),
+      status: (json['status'] ?? 'pending').toString(),
+      fare: fareRaw != null ? (fareRaw as num).toDouble() : null,
       paymentMethod: json['paymentMethod'],
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
@@ -206,11 +318,22 @@ class Location {
   });
   
   factory Location.fromJson(Map<String, dynamic> json) {
+    final coords = json['coordinates'];
+    double lat = 0;
+    double lng = 0;
+    if (coords is List && coords.length >= 2) {
+      // GeoJSON: [longitude, latitude]
+      lng = (coords[0] as num).toDouble();
+      lat = (coords[1] as num).toDouble();
+    } else {
+      lat = (json['latitude'] ?? json['lat'] ?? 0).toDouble();
+      lng = (json['longitude'] ?? json['lng'] ?? 0).toDouble();
+    }
     return Location(
-      latitude: (json['latitude'] ?? json['lat'] ?? 0).toDouble(),
-      longitude: (json['longitude'] ?? json['lng'] ?? 0).toDouble(),
-      address: json['address'],
-      name: json['name'],
+      latitude: lat,
+      longitude: lng,
+      address: json['address']?.toString(),
+      name: json['name']?.toString(),
     );
   }
   
